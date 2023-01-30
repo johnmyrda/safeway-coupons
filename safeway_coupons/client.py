@@ -5,6 +5,7 @@ from typing import List, Optional
 import requests
 
 from .accounts import Account
+from .brands import get_url
 from .errors import ClipError, HTTPError
 from .methods import ClipRequest, ClipResponse
 from .models import Offer, OfferList
@@ -13,6 +14,7 @@ from .session import BaseSession, LoginSession
 
 class SafewayClient(BaseSession):
     def __init__(self, account: Account) -> None:
+        self.brand = account.brand
         self.session = LoginSession(account)
         self.requests.headers.update(
             {
@@ -26,7 +28,7 @@ class SafewayClient(BaseSession):
     def get_offers(self) -> List[Offer]:
         try:
             response = self.requests.get(
-                "https://www.safeway.com/abs/pub/xapi"
+                f"https://{get_url(self.brand)}/abs/pub/xapi"
                 "/offers/companiongalleryoffer"
                 f"?storeId={self.session.store_id}"
                 f"&rand={random.randrange(100000,999999)}",
@@ -41,7 +43,7 @@ class SafewayClient(BaseSession):
         response: Optional[requests.Response] = None
         try:
             response = self.requests.post(
-                "https://www.safeway.com/abs/pub/web/j4u/api/offers/clip"
+                f"https://{get_url(self.brand)}/abs/pub/web/j4u/api/offers/clip"
                 f"?storeId={self.session.store_id}",
                 data=json.dumps(request.to_dict(encode_json=True)),
                 headers={"Content-Type": "application/json"},

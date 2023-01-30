@@ -12,8 +12,9 @@ from .session import BaseSession, LoginSession
 
 
 class SafewayClient(BaseSession):
-    def __init__(self, account: Account) -> None:
-        self.session = LoginSession(account)
+    def __init__(self, account: Account, brand_url: str) -> None:
+        self.session = LoginSession(account, brand_url)
+        self.brand_url = brand_url
         self.requests.headers.update(
             {
                 "Authorization": f"Bearer {self.session.access_token}",
@@ -26,7 +27,7 @@ class SafewayClient(BaseSession):
     def get_offers(self) -> List[Offer]:
         try:
             response = self.requests.get(
-                "https://www.safeway.com/abs/pub/xapi"
+                f"https://{self.brand_url}/abs/pub/xapi"
                 "/offers/companiongalleryoffer"
                 f"?storeId={self.session.store_id}"
                 f"&rand={random.randrange(100000,999999)}",
@@ -41,7 +42,7 @@ class SafewayClient(BaseSession):
         response: Optional[requests.Response] = None
         try:
             response = self.requests.post(
-                "https://www.safeway.com/abs/pub/web/j4u/api/offers/clip"
+                f"https://{self.brand_url}/abs/pub/web/j4u/api/offers/clip"
                 f"?storeId={self.session.store_id}",
                 data=json.dumps(request.to_dict(encode_json=True)),
                 headers={"Content-Type": "application/json"},

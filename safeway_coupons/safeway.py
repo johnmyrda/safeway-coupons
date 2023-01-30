@@ -19,6 +19,7 @@ class SafewayCoupons:
         dry_run: bool = False,
         max_clip_count: int = 0,
         max_clip_errors: int = CLIP_ERROR_MAX,
+        brand_url: str = None
     ) -> None:
         self.send_email = send_email
         self.debug_level = debug_level
@@ -26,10 +27,11 @@ class SafewayCoupons:
         self.dry_run = dry_run
         self.max_clip_count = max_clip_count
         self.max_clip_errors = max_clip_errors
+        self.brand_url = brand_url
 
     def clip_for_account(self, account: Account) -> None:
         print(f"Clipping coupons for Safeway account {account.username}")
-        swy = SafewayClient(account)
+        swy = SafewayClient(account, self.brand_url)
         clipped_offers: List[Offer] = []
         clip_errors: List[ClipError] = []
         try:

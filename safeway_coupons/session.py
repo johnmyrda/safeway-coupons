@@ -5,6 +5,7 @@ from typing import Optional
 import requests
 
 from .accounts import Account
+from .brands import get_url
 from .errors import AuthenticationFailure
 from .utils import make_nonce, make_token
 
@@ -14,9 +15,6 @@ AUTHORIZE_URL = (
 )
 
 OAUTH_CLIENT_ID = "0oap6ku01XJqIRdl42p6"
-OAUTH_REDIRECT_URI = (
-    "https://www.safeway.com/bin/safeway/unified/sso/authorize"
-)
 
 
 class BaseSession:
@@ -62,7 +60,7 @@ class LoginSession(BaseSession):
         nonce = make_nonce()
         params = {
             "client_id": OAUTH_CLIENT_ID,
-            "redirect_uri": OAUTH_REDIRECT_URI,
+            "redirect_uri": (f"https://{get_url(account.brand)}/bin/safeway/unified/sso/authorize"),
             "response_type": "code",
             "response_mode": "query",
             "state": state_token,

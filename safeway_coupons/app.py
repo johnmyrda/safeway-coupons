@@ -4,11 +4,21 @@ from http.client import HTTPConnection
 
 from .config import Config
 from .safeway import SafewayCoupons
+from .brands import brands
 
 
 def _parse_args() -> argparse.Namespace:
     description = 'Automatic coupon clipper for "Safeway for U" coupons'
     arg_parser = argparse.ArgumentParser(description=description)
+    arg_parser.add_argument(
+        "-b",
+        "--brand",
+        dest="brand",
+        action="store",
+        help=(
+            "Brand to use for clipping coupons (defaults to Safeway)"
+        ),
+    )
     arg_parser.add_argument(
         "-c",
         "--accounts-config",
@@ -76,12 +86,15 @@ def main() -> None:
         sys.exit(1)
     if args.debug_level >= 2:
         HTTPConnection.debuglevel = 1
+    if args.brand:
+        brand_url = brands.get(args.brand, "safeway")
     sc = SafewayCoupons(
         send_email=args.send_email,
         debug_level=args.debug_level,
         sleep_level=args.sleep_level,
         dry_run=args.dry_run,
         max_clip_count=args.max_clip_count,
+        brand_url=brand_url
     )
     try:
         for account in accounts:

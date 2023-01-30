@@ -14,9 +14,6 @@ AUTHORIZE_URL = (
 )
 
 OAUTH_CLIENT_ID = "0oap6ku01XJqIRdl42p6"
-OAUTH_REDIRECT_URI = (
-    "https://www.safeway.com/bin/safeway/unified/sso/authorize"
-)
 
 
 class BaseSession:
@@ -38,9 +35,10 @@ class BaseSession:
 
 
 class LoginSession(BaseSession):
-    def __init__(self, account: Account) -> None:
+    def __init__(self, account: Account, brand_url: str) -> None:
         self.access_token: Optional[str] = None
         self.store_id: Optional[str] = None
+        self.brand_url: Optional[str] = brand_url
         try:
             self._login(account)
         except Exception as e:
@@ -62,7 +60,7 @@ class LoginSession(BaseSession):
         nonce = make_nonce()
         params = {
             "client_id": OAUTH_CLIENT_ID,
-            "redirect_uri": OAUTH_REDIRECT_URI,
+            "redirect_uri": (f"https://{self.brand_url}/bin/safeway/unified/sso/authorize"),
             "response_type": "code",
             "response_mode": "query",
             "state": state_token,

@@ -3,7 +3,6 @@
 [![PyPI](https://img.shields.io/pypi/v/safeway-coupons)][pypi]
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/safeway-coupons)][pypi]
 [![Build](https://img.shields.io/github/checks-status/smkent/safeway-coupons/main?label=build)][gh-actions]
-[![codecov](https://codecov.io/gh/smkent/safeway-coupons/branch/main/graph/badge.svg)][codecov]
 [![GitHub stars](https://img.shields.io/github/stars/smkent/safeway-coupons?style=social)][repo]
 
 **safeway-coupons** is a script that will log in to an account on safeway.com,
@@ -275,7 +274,6 @@ docker-compose -f docker-compose.dev.yaml down
 Created from [smkent/cookie-python][cookie-python] using
 [cookiecutter][cookiecutter]
 
-[codecov]: https://codecov.io/gh/smkent/safeway-coupons
 [cookie-python]: https://github.com/smkent/cookie-python
 [cookiecutter]: https://github.com/cookiecutter/cookiecutter
 [gh-actions]: https://github.com/smkent/safeway-coupons/actions?query=branch%3Amain

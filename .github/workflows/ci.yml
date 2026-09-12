@@ -1,9 +1,6 @@
 ---
 name: Test
 
-env:
-  ENABLE_COVERAGE: true
-
 on:
   pull_request:
   push:
@@ -43,15 +40,6 @@ jobs:
         with:
           paths: ./.pytest_results.xml
 
-      - name: 📊 Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        if: ${{ env.ENABLE_COVERAGE == 'true' }}
-        with:
-          fail_ci_if_error: true
-          files: ./.pytest_coverage.xml
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true

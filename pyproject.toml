@@ -30,7 +30,7 @@ safeway-coupons = "safeway_coupons.app:main"
 safeway-coupons-init-chromedriver = "safeway_coupons.chrome_driver:init"
 
 [project.urls]
-Repository = "https://github.com/smkent/safeway-coupons"
+Repository = "https://github.com/johnmyrda/safeway-coupons"
 
 [dependency-groups]
 dev = [

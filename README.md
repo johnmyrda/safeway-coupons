@@ -2,8 +2,8 @@
 
 [![PyPI](https://img.shields.io/pypi/v/safeway-coupons)][pypi]
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/safeway-coupons)][pypi]
-[![Build](https://img.shields.io/github/checks-status/smkent/safeway-coupons/main?label=build)][gh-actions]
-[![GitHub stars](https://img.shields.io/github/stars/smkent/safeway-coupons?style=social)][repo]
+[![Build](https://img.shields.io/github/checks-status/johnmyrda/safeway-coupons/main?label=build)][gh-actions]
+[![GitHub stars](https://img.shields.io/github/stars/johnmyrda/safeway-coupons?style=social)][repo]
 
 **safeway-coupons** is a script that will log in to an account on safeway.com,
 and attempt to select all of the "Safeway for U" electronic coupons on the site
@@ -276,8 +276,8 @@ Created from [smkent/cookie-python][cookie-python] using
 
 [cookie-python]: https://github.com/smkent/cookie-python
 [cookiecutter]: https://github.com/cookiecutter/cookiecutter
-[gh-actions]: https://github.com/smkent/safeway-coupons/actions?query=branch%3Amain
+[gh-actions]: https://github.com/johnmyrda/safeway-coupons/actions?query=branch%3Amain
 [uv]: https://docs.astral.sh/uv/getting-started/installation/
 [pypi]: https://pypi.org/project/safeway-coupons/
-[repo]: https://github.com/smkent/safeway-coupons
+[repo]: https://github.com/johnmyrda/safeway-coupons
 [requests]: https://requests.readthedocs.io/en/latest/

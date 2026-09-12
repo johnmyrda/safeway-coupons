@@ -13,7 +13,7 @@ on:
 
 jobs:
   Test:
-    name: Python ${{ matrix.python-version }}, Poetry ${{ matrix.poetry-version }}
+    name: Python ${{ matrix.python-version }}
 
     strategy:
       matrix:
@@ -21,22 +21,21 @@ jobs:
           - Ubuntu
         python-version:
           - "3.14"
-        poetry-version:
-          - "2.4.3"
 
     runs-on: ${{ matrix.os }}-latest
     steps:
       - name: 💾 Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: 🐍 Set up Python project with Poetry
-        uses: ./.github/workflows/actions/python-poetry
+      - name: 🐍 Set up Python project with uv
+        uses: ./.github/workflows/actions/python-uv
         with:
           python_version: ${{ matrix.python-version }}
-          poetry_version: ${{ matrix.poetry-version }}
 
       - name: 🔥 Test
-        run: poetry run poe test
+        run: uv run --locked poe test
 
       - name: 🚒 Create test summary
         uses: test-summary/action@v2

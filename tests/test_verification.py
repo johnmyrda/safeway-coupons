@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -6,21 +8,22 @@ from safeway_coupons.session import LoginSession
 
 
 @pytest.mark.parametrize("method", ["sms", "email"])
-def test_verification(method, monkeypatch):
+def test_verification(method: str, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SAFEWAY_VERIFICATION_METHOD", method)
     session = LoginSession.__new__(LoginSession)
     driver = MagicMock()
     field = MagicMock()
     submit = MagicMock()
 
-    def find_buttons(by, selector):
+    def find_buttons(by: str, selector: str) -> list[MagicMock]:
         assert "normalize-space()='Sign In'" in selector
         return [submit]
 
     driver.find_elements.side_effect = find_buttons
 
-    def submit_condition(condition):
+    def submit_condition(condition: Callable[[MagicMock], Any]) -> Any:
         return condition(driver)
+
     with (
         patch.object(session, "_sign_in_success", return_value=False),
         patch("safeway_coupons.session.sys.stdin.isatty", return_value=True),
@@ -29,7 +32,7 @@ def test_verification(method, monkeypatch):
     ):
         results = iter([True, MagicMock(), MagicMock(), [field]])
 
-        def until(condition):
+        def until(condition: Callable[[MagicMock], Any]) -> Any:
             result = next(results, None)
             if result is not None:
                 return result
@@ -44,19 +47,19 @@ def test_verification(method, monkeypatch):
     submit.click.assert_called_once_with()
 
 
-def test_verification_requires_terminal():
+def test_verification_requires_terminal() -> None:
     session = LoginSession.__new__(LoginSession)
     driver = MagicMock()
     with (
         patch.object(session, "_sign_in_success", return_value=False),
         patch("safeway_coupons.session.sys.stdin.isatty", return_value=False),
+        pytest.raises(RuntimeError, match="Device verification required"),
     ):
-        with pytest.raises(RuntimeError, match="Device verification required"):
-            session._complete_sign_in(driver)
+        session._complete_sign_in(driver)
     driver.find_element.assert_not_called()
 
 
-def test_verification_detects_visible_label_with_hidden_radio():
+def test_verification_detects_visible_label_with_hidden_radio() -> None:
     session = LoginSession.__new__(LoginSession)
     driver = MagicMock()
     hidden_radio = MagicMock()
@@ -64,10 +67,10 @@ def test_verification_detects_visible_label_with_hidden_radio():
     label = MagicMock()
     label.is_displayed.return_value = True
     driver.find_elements.side_effect = lambda by, selector: (
-        [label] if selector == 'label #sms, label #email' else [hidden_radio]
+        [label] if selector == "label #sms, label #email" else [hidden_radio]
     )
 
-    def check_condition(condition):
+    def check_condition(condition: Callable[[MagicMock], bool]) -> None:
         assert condition(driver) is True
 
     with (

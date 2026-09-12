@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 from .accounts import Account
 from .client import SafewayClient
@@ -15,9 +14,9 @@ class SafewayCoupons:
     def __init__(
         self,
         send_email: bool = True,
-        sendmail: Optional[list[str]] = None,
+        sendmail: list[str] | None = None,
         debug_level: int = 0,
-        debug_dir: Optional[Path] = None,
+        debug_dir: Path | None = None,
         sleep_level: int = 0,
         dry_run: bool = False,
         max_clip_count: int = 0,

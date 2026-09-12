@@ -1,7 +1,6 @@
 import json
 import random
 from pathlib import Path
-from typing import Optional
 
 import requests
 
@@ -13,7 +12,7 @@ from .session import BaseSession, LoginSession
 
 
 class SafewayClient(BaseSession):
-    def __init__(self, account: Account, debug_dir: Optional[Path]) -> None:
+    def __init__(self, account: Account, debug_dir: Path | None) -> None:
         self.session = LoginSession(account, debug_dir)
         self.requests.headers.update(
             {
@@ -35,7 +34,9 @@ class SafewayClient(BaseSession):
             response.raise_for_status()
             payload = response.json()
             if not isinstance(payload, dict):
-                raise ValueError("Unexpected offers response: expected an object")
+                raise ValueError(
+                    "Unexpected offers response: expected an object"
+                )
             if "companionGalleryOfferList" in payload:
                 offers = payload["companionGalleryOfferList"]
             elif "companionGalleryOffer" in payload:
@@ -55,7 +56,9 @@ class SafewayClient(BaseSession):
             if not isinstance(offers, list) or not all(
                 isinstance(offer, dict) for offer in offers
             ):
-                raise ValueError("Unexpected offers response: invalid offer list")
+                raise ValueError(
+                    "Unexpected offers response: invalid offer list"
+                )
             return OfferList.from_dict(
                 {"companionGalleryOfferList": offers}
             ).offers
@@ -64,7 +67,7 @@ class SafewayClient(BaseSession):
 
     def clip(self, offer: Offer) -> None:
         request = ClipRequest.from_offer(offer)
-        response: Optional[requests.Response] = None
+        response: requests.Response | None = None
         try:
             response = self.requests.post(
                 "https://www.safeway.com/abs/pub/web/j4u/api/offers/clip"

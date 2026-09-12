@@ -2,19 +2,21 @@
 ARG PYTHON_IMAGE=docker.io/library/python:3.14.7-slim-bookworm
 FROM ${PYTHON_IMAGE} AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.12.13 /uv /usr/local/bin/uv
-ENV UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_CONCURRENT_BUILDS=1
+ENV UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_CONCURRENT_BUILDS=1 \
+    UV_PROJECT_ENVIRONMENT=/opt/venv
 WORKDIR /build
-RUN uv venv /opt/venv
-# Dependency installation is cached independently of application source edits.
-COPY requirements-container.txt ./
+# One lock for development and production; cache dependencies before source.
+COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --python /opt/venv/bin/python --require-hashes \
-        -r requirements-container.txt
-COPY pyproject.toml README.md LICENSE ./
+    uv sync --locked --no-dev --no-install-project
+COPY README.md LICENSE ./
 COPY safeway_coupons ./safeway_coupons
-ARG POETRY_DYNAMIC_VERSIONING_BYPASS="0.0.0"
+# Git history is deliberately excluded from the build context. Release CI
+# supplies the Git-derived version; local images default to 0.0.0.
+ARG PROJECT_VERSION="0.0.0"
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --python /opt/venv/bin/python --no-deps .
+    SETUPTOOLS_SCM_PRETEND_VERSION="$PROJECT_VERSION" \
+    uv sync --locked --no-dev --no-editable
 
 FROM ${PYTHON_IMAGE} AS runtime
 # Native browser and matching driver; no Intel emulation or external apt key.

@@ -1,9 +1,6 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 import dataclasses_json
 
@@ -12,7 +9,7 @@ def datetime_encode(dt: datetime) -> str:
     return str(int(datetime.timestamp(dt)) * 1000)
 
 
-def datetime_decode(value: Optional[str]) -> Optional[datetime]:
+def datetime_decode(value: str | None) -> datetime | None:
     if not value:
         return None
     return datetime.fromtimestamp(int(value) / 1000, timezone.utc)
@@ -76,7 +73,7 @@ class Offer(Model):
     offer_pgm: OfferType
     category_type: str
     image: str
-    category: Optional[str] = None
+    category: str | None = None
 
     def __str__(self) -> str:
         return (

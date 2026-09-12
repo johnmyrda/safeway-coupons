@@ -1,12 +1,12 @@
 import contextlib
+import json
 import os
 import sys
-import json
 import time
 import urllib
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import requests
 import selenium.webdriver.support.expected_conditions as ec
@@ -25,12 +25,13 @@ from .errors import AuthenticationFailure
 
 
 class ExceptionWithAttachments(Exception):
-    def __init__(
+    # Keyword-only attachments hold diagnostic metadata, not exception args.
+    def __init__(  # noqa: B042
         self,
         *args: Any,
-        attachments: Optional[list[Path]] = None,
-        **kwargs: Any,
-    ):
+        attachments: list[Path] | None = None,
+    ) -> None:
+        super().__init__(*args)
         self.attachments = attachments
 
 
@@ -53,10 +54,10 @@ class BaseSession:
 
 
 class LoginSession(BaseSession):
-    def __init__(self, account: Account, debug_dir: Optional[Path]) -> None:
-        self.access_token: Optional[str] = None
-        self.store_id: Optional[str] = None
-        self.debug_dir: Optional[Path] = debug_dir
+    def __init__(self, account: Account, debug_dir: Path | None) -> None:
+        self.access_token: str | None = None
+        self.store_id: str | None = None
+        self.debug_dir: Path | None = debug_dir
         try:
             self._login(account)
         except ExceptionWithAttachments as e:
@@ -91,7 +92,7 @@ class LoginSession(BaseSession):
             if not (element and element.text):
                 return False
             return not element.text.lower().startswith("sign in")
-        except (NoSuchElementException, StaleElementReferenceException):
+        except NoSuchElementException, StaleElementReferenceException:
             return False
 
     def _complete_sign_in(self, driver: uc.Chrome) -> None:
@@ -101,7 +102,7 @@ class LoginSession(BaseSession):
             return self._sign_in_success(d) or any(
                 element.is_displayed()
                 for element in d.find_elements(
-                    By.CSS_SELECTOR, 'label #sms, label #email'
+                    By.CSS_SELECTOR, "label #sms, label #email"
                 )
             )
 
@@ -110,16 +111,16 @@ class LoginSession(BaseSession):
             return
         method = os.environ.get("SAFEWAY_VERIFICATION_METHOD", "sms")
         if method not in {"sms", "email"}:
-            raise ValueError("SAFEWAY_VERIFICATION_METHOD must be sms or email")
+            raise ValueError(
+                "SAFEWAY_VERIFICATION_METHOD must be sms or email"
+            )
         if not sys.stdin.isatty():
             raise RuntimeError(
                 "Device verification required. Run interactively with "
                 "podman run -it to enter the verification code locally."
             )
         print(f"Device verification required; selecting {method}.")
-        wait.until(
-            ec.element_to_be_clickable((By.ID, method))
-        ).click()
+        wait.until(ec.element_to_be_clickable((By.ID, method))).click()
         wait.until(
             ec.element_to_be_clickable(
                 (By.XPATH, "//button[normalize-space()='Continue']")
@@ -148,6 +149,7 @@ class LoginSession(BaseSession):
                 field.send_keys(digit)
         else:
             raise RuntimeError("Unexpected verification code input layout")
+
         def submit_button(d: uc.Chrome) -> Any:
             buttons = d.find_elements(
                 By.XPATH,
@@ -159,8 +161,11 @@ class LoginSession(BaseSession):
                 "normalize-space()='Sign in']",
             )
             return next(
-                (button for button in buttons
-                 if button.is_displayed() and button.is_enabled()),
+                (
+                    button
+                    for button in buttons
+                    if button.is_displayed() and button.is_enabled()
+                ),
                 False,
             )
 

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import requests
 
@@ -16,7 +15,7 @@ class Error(Exception):
 @dataclass
 class AuthenticationFailure(Error):
     account: Account
-    attachments: Optional[list[Path]] = None
+    attachments: list[Path] | None = None
 
     def __str__(self) -> str:
         return f"Authentication Failure ({self.exception})"
@@ -32,7 +31,7 @@ class HTTPError(Error):
 
 @dataclass
 class ClipError(Error):
-    response: Optional[requests.Response]
+    response: requests.Response | None
     offer: Offer
 
     def __str__(self) -> str:

@@ -82,8 +82,8 @@ docker-compose logs -f
 
 `Dockerfile` uses native Debian Chromium and its matching driver rather than
 emulating Intel Chrome. `Dockerfile.podman` is a compatibility symlink to it.
-The multi-stage build uses uv with hash-checked, pinned Python runtime
-requirements; uv and build tooling are not copied into the runtime venv.
+The multi-stage build uses `uv sync --locked --no-dev` with the same `uv.lock`
+as development. uv and build tooling are not copied into the runtime venv.
 Dependency layers are cached separately from application source. An allowlisted
 `.dockerignore` excludes credentials and debug artifacts from the build context.
 
@@ -119,13 +119,15 @@ podman machine stop
 The runner does not automatically start or stop a shared VM. Restart it with
 `podman machine start` before the next run. No scheduled service is enabled.
 
-Refresh container Python dependencies intentionally, then rebuild and test:
+Refresh Python dependencies intentionally, then rebuild and test:
 
 ```console
-uv pip compile pyproject.toml --python-version 3.14.7 --universal --generate-hashes --upgrade -o requirements-container.txt
+uv lock --upgrade
+uv sync --locked
+uv run --locked pytest
 ```
 
-This runtime lock is separate from Poetry's development lock. Python runtime
+`uv.lock` is the single lock for development, CI and containers. Python runtime
 packages and the Python 3.14.7 base-image version are pinned; Debian browser
 packages and isolated Python build dependencies are not fully pinned. Use
 `podman build --pull=always --no-cache --jobs=1 --memory=1280m --memory-swap=1280m -t localhost/safeway-coupons:local .`
@@ -145,7 +147,7 @@ root for compatibility with BusyBox cron; the Podman VM uses rootless containers
 [safeway-coupons is available on PyPI][pypi]:
 
 ```console
-pip install safeway-coupons
+uv tool install --python 3.14 safeway-coupons
 ```
 
 ### Usage
@@ -201,22 +203,37 @@ safeway-coupons -c path/to/config/file
 
 ## Development
 
-### [Poetry][poetry] installation
+### Setup with [uv][uv]
 
-Via [`pipx`][pipx]:
-
-```console
-pip install pipx
-pipx install poetry
-pipx inject poetry poetry-pre-commit-plugin
-```
-
-Via `pip`:
+Install uv 0.12.13 or newer, then run:
 
 ```console
-pip install poetry
-poetry self add poetry-pre-commit-plugin
+uv sync --locked
+uv run --locked pre-commit install
 ```
+
+uv installs the Python version in `.python-version` and creates `.venv` with
+runtime and development dependencies. No separate environment activation or
+Poetry installation is needed.
+
+### Builds and versions
+
+```console
+uv build
+```
+
+Hatchling and hatch-vcs build wheels and source distributions with versions
+inferred from Git tags (for example, `v1.2.3`). Development checkouts get a
+PEP 440 development version. Use a full Git checkout including tags; release CI
+fetches full history. Runtime version reporting reads installed package metadata.
+
+Container build contexts deliberately exclude Git history. Local images use
+`0.0.0`; release CI passes the Git-derived version with
+`--build-arg PROJECT_VERSION=...`. To build a package from source without Git
+metadata, explicitly set `SETUPTOOLS_SCM_PRETEND_VERSION`.
+
+To update a dependency, use `uv add` (or `uv add --dev` for development tools).
+Commit both `pyproject.toml` and `uv.lock` when dependency declarations change.
 
 ### Invocation with docker-compose
 
@@ -246,10 +263,12 @@ docker-compose -f docker-compose.dev.yaml down
 
 ### Development tasks
 
-* Setup: `poetry install`
-* Run static checks: `poetry run poe lint` or
-  `poetry run pre-commit run --all-files`
-* Run static checks and tests: `poetry run poe test`
+* Setup: `uv sync --locked`
+* Run static checks: `uv run --locked poe lint` or
+  `uv run --locked pre-commit run --all-files`
+* Run unit tests: `uv run --locked pytest`
+* Run static checks and tests: `uv run --locked poe test`
+* Build distributions: `uv build`
 
 ---
 
@@ -260,8 +279,7 @@ Created from [smkent/cookie-python][cookie-python] using
 [cookie-python]: https://github.com/smkent/cookie-python
 [cookiecutter]: https://github.com/cookiecutter/cookiecutter
 [gh-actions]: https://github.com/smkent/safeway-coupons/actions?query=branch%3Amain
-[pipx]: https://pypa.github.io/pipx/
-[poetry]: https://python-poetry.org/docs/#installation
+[uv]: https://docs.astral.sh/uv/getting-started/installation/
 [pypi]: https://pypi.org/project/safeway-coupons/
 [repo]: https://github.com/smkent/safeway-coupons
 [requests]: https://requests.readthedocs.io/en/latest/

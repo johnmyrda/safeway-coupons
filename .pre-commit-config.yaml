@@ -16,7 +16,6 @@ repos:
     rev: 9.0.1
     hooks:
     - id: isort
-      args: ["--show-config"]
   - repo: https://github.com/pycqa/bandit
     rev: 1.9.4
     hooks:
@@ -46,6 +45,7 @@ repos:
     hooks:
     - id: mypy
       name: mypy
-      language: python
+      language: system
       types_or: [python, pyi]
-      entry: env -u VIRTUAL_ENV poetry run mypy
+      entry: uv run --locked mypy
+      pass_filenames: false

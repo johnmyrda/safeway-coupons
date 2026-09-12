@@ -5,7 +5,6 @@ env:
   ENABLE_PYPI_PUBLISH: true
   ENABLE_TEST_PYPI_PUBLISH: false
   RELEASE_PYTHON_VERSION: "3.14.7"
-  RELEASE_POETRY_VERSION: "2.4.3"
 
 on:
   push:
@@ -27,15 +26,16 @@ jobs:
     steps:
       - name: 💾 Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: 🐍 Set up Python project with Poetry
-        uses: ./.github/workflows/actions/python-poetry
+      - name: 🐍 Set up Python project with uv
+        uses: ./.github/workflows/actions/python-uv
         with:
           python_version: ${{ env.RELEASE_PYTHON_VERSION }}
-          poetry_version: ${{ env.RELEASE_POETRY_VERSION }}
 
       - name: 🔥 Test
-        run: poetry run poe test
+        run: uv run --locked poe test
 
       - name: 🚒 Create test summary
         uses: test-summary/action@v1
@@ -47,7 +47,7 @@ jobs:
         if: |
           env.ENABLE_PYPI_PUBLISH == 'true'
           || env.ENABLE_TEST_PYPI_PUBLISH == 'true'
-        run: poetry build
+        run: uv build
 
       - name: 🔼 Publish to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

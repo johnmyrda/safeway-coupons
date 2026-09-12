@@ -2,7 +2,7 @@
 **
 !Dockerfile
 !Dockerfile.podman
-!requirements-container.txt
+!uv.lock
 !pyproject.toml
 !README.md
 !LICENSE

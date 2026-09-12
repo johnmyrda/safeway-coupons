@@ -53,6 +53,9 @@ def login_success(mock_undetected_chromedriver: mock.MagicMock) -> None:
             "value": urllib.parse.quote(json.dumps(value)) if value else None
         }
 
+    mock_undetected_chromedriver.find_element.return_value.text = (
+        "Hi, Ness"
+    )
     mock_undetected_chromedriver.get_cookie.side_effect = _get_cookie
     return
 

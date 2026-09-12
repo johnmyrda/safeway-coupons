@@ -20,13 +20,9 @@ jobs:
         os:
           - Ubuntu
         python-version:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
+          - "3.14"
         poetry-version:
-          - "2.0"
+          - "2.4.3"
 
     runs-on: ${{ matrix.os }}-latest
     steps:

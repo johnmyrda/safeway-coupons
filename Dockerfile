@@ -1,35 +1,43 @@
-FROM busybox
-
-FROM python:3
+# syntax=docker/dockerfile:1
+ARG PYTHON_IMAGE=docker.io/library/python:3.14.7-slim-bookworm
+FROM ${PYTHON_IMAGE} AS builder
+COPY --from=ghcr.io/astral-sh/uv:0.12.13 /uv /usr/local/bin/uv
+ENV UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_CONCURRENT_BUILDS=1
+WORKDIR /build
+RUN uv venv /opt/venv
+# Dependency installation is cached independently of application source edits.
+COPY requirements-container.txt ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --python /opt/venv/bin/python --require-hashes \
+        -r requirements-container.txt
+COPY pyproject.toml README.md LICENSE ./
+COPY safeway_coupons ./safeway_coupons
 ARG POETRY_DYNAMIC_VERSIONING_BYPASS="0.0.0"
-ENV CRON_SCHEDULE "5 2 * * *"
-ENV SMTPHOST=
-ENV SAFEWAY_ACCOUNT_USERNAME=
-ENV SAFEWAY_ACCOUNT_PASSWORD=
-ENV SAFEWAY_ACCOUNT_MAIL_FROM=
-ENV SAFEWAY_ACCOUNT_MAIL_TO=
-ENV SAFEWAY_ACCOUNTS_FILE=
-ENV DEBUG_DIR="/debug"
-ENV EXTRA_ARGS=
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --python /opt/venv/bin/python --no-deps .
 
-RUN DEBIAN_FRONTEND=noninteractive && \
-    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub > /usr/share/keyrings/chrome.pub && \
-    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/chrome.pub] http://dl.google.com/linux/chrome/deb/ stable main' > /etc/apt/sources.list.d/google-chrome.list && \
-    apt update -y && \
-    apt install -y google-chrome-stable
-RUN apt install -y tini
+FROM ${PYTHON_IMAGE} AS runtime
+# Native browser and matching driver; no Intel emulation or external apt key.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates chromium chromium-driver busybox-static tini && \
+    rm -rf /var/lib/apt/lists/* && \
+    for target in /usr/sbin/sendmail /usr/sbin/crond /usr/bin/crontab; do \
+        ln -sf /bin/busybox "$target"; \
+    done && \
+    mkdir -p /opt/chromedriver /debug && \
+    cp /usr/bin/chromedriver /opt/chromedriver/chromedriver
 
-# Install busybox utilities using static binary from official image
-COPY --from=busybox /bin/busybox /bin/busybox
-RUN for target in /usr/sbin/sendmail /usr/sbin/crond /usr/bin/crontab; do \
-    ln -svf /bin/busybox ${target}; \
-    done
-
-COPY docker/entrypoint /
-
-COPY . /python-build
-RUN python3 -m pip install /python-build && rm -rf /python-build
-RUN safeway-coupons-init-chromedriver
-
+ENV PATH="/opt/venv/bin:$PATH" \
+    SAFEWAY_CHROMEDRIVER_PATH="/opt/chromedriver/chromedriver" \
+    CRON_SCHEDULE="5 2 * * *" \
+    SAFEWAY_ACCOUNTS_FILE="" \
+    DEBUG_DIR="/debug" \
+    EXTRA_ARGS="" \
+    PYTHONUNBUFFERED="1" \
+    PYTHONDONTWRITEBYTECODE="1"
+COPY --from=builder /opt/venv /opt/venv
+COPY --chmod=755 docker/entrypoint /entrypoint
+# Root is retained for the existing BusyBox cron entrypoint. Podman runs
+# rootless on the host. One-shot callers override CMD with safeway-coupons.
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/entrypoint"]

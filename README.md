@@ -78,10 +78,65 @@ Debugging information can be viewed in the container log:
 docker-compose logs -f
 ```
 
+## Local setup with Podman (including Apple Silicon)
+
+`Dockerfile` uses native Debian Chromium and its matching driver rather than
+emulating Intel Chrome. `Dockerfile.podman` is a compatibility symlink to it.
+The multi-stage build uses uv with hash-checked, pinned Python runtime
+requirements; uv and build tooling are not copied into the runtime venv.
+Dependency layers are cached separately from application source. An allowlisted
+`.dockerignore` excludes credentials and debug artifacts from the build context.
+
+```console
+podman machine start  # if not already running
+podman build --jobs=1 --memory=1280m --memory-swap=1280m -t localhost/safeway-coupons:local .
+python3 scripts/configure.py
+sh scripts/run-podman.sh                 # dry run: sign in, list, do not clip
+sh scripts/run-podman.sh --max-clip 1    # test clipping one coupon
+sh scripts/run-podman.sh --max-clip 0    # clip all available coupons
+```
+
+Enter credentials in the local terminal, not in chat. The setup script creates
+an ignored `accounts` file with mode 0600. It is mounted read-only, not baked into
+the image. Debug artifacts are stored in ignored `debug/`; treat them as private.
+Email is disabled and no schedule is started by these commands. The target is
+still **Safeway**, not Jewel-Osco. Site authentication may still be blocked by a
+CAPTCHA or changes to the sign-in page.
+
+### Resource limits and maintenance
+
+On this Mac the Podman VM is configured for 2 CPUs and 2048 MiB guest RAM.
+The one-shot runner caps each container at 2 CPUs, 1280 MiB memory (no swap),
+256 processes/threads and 256 MiB shared memory. A browser smoke test passes
+within these limits; full authenticated runs may need tuning if they hit OOM.
+The VM's macOS memory footprint can exceed its guest allocation. Stop it after
+use to reclaim memory (this stops any other containers in the VM too):
+
+```console
+podman machine stop
+```
+
+The runner does not automatically start or stop a shared VM. Restart it with
+`podman machine start` before the next run. No scheduled service is enabled.
+
+Refresh container Python dependencies intentionally, then rebuild and test:
+
+```console
+uv pip compile pyproject.toml --python-version 3.14.7 --universal --generate-hashes --upgrade -o requirements-container.txt
+```
+
+This runtime lock is separate from Poetry's development lock. Python runtime
+packages and the Python 3.14.7 base-image version are pinned; Debian browser
+packages and isolated Python build dependencies are not fully pinned. Use
+`podman build --pull=always --no-cache --jobs=1 --memory=1280m --memory-swap=1280m -t localhost/safeway-coupons:local .`
+periodically to pick up base and browser security updates. The runtime retains
+root for compatibility with BusyBox cron; the Podman VM uses rootless containers.
+
 ## Installation from PyPI
 
 ### Prerequisites
 
+* Python 3.14 or newer (development and containers use 3.14.7).
 * Google Chrome (for authentication performed via Selenium).
 * Optional: `sendmail` (for email support)
 

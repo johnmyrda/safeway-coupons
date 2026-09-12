@@ -1,4 +1,6 @@
 import contextlib
+import os
+import sys
 import json
 import time
 import urllib
@@ -89,8 +91,82 @@ class LoginSession(BaseSession):
             if not (element and element.text):
                 return False
             return not element.text.lower().startswith("sign in")
-        except StaleElementReferenceException:
+        except (NoSuchElementException, StaleElementReferenceException):
             return False
+
+    def _complete_sign_in(self, driver: uc.Chrome) -> None:
+        wait = WebDriverWait(driver, 30)
+
+        def signed_in_or_verification(d: uc.Chrome) -> bool:
+            return self._sign_in_success(d) or any(
+                element.is_displayed()
+                for element in d.find_elements(
+                    By.CSS_SELECTOR, 'label #sms, label #email'
+                )
+            )
+
+        wait.until(signed_in_or_verification)
+        if self._sign_in_success(driver):
+            return
+        method = os.environ.get("SAFEWAY_VERIFICATION_METHOD", "sms")
+        if method not in {"sms", "email"}:
+            raise ValueError("SAFEWAY_VERIFICATION_METHOD must be sms or email")
+        if not sys.stdin.isatty():
+            raise RuntimeError(
+                "Device verification required. Run interactively with "
+                "podman run -it to enter the verification code locally."
+            )
+        print(f"Device verification required; selecting {method}.")
+        wait.until(
+            ec.element_to_be_clickable((By.ID, method))
+        ).click()
+        wait.until(
+            ec.element_to_be_clickable(
+                (By.XPATH, "//button[normalize-space()='Continue']")
+            )
+        ).click()
+        print(f"Requested verification code via {method}.")
+
+        def code_fields(d: uc.Chrome) -> Any:
+            fields = d.find_elements(
+                By.CSS_SELECTOR,
+                'input[autocomplete="one-time-code"], '
+                'input[inputmode="numeric"], input[type="tel"], '
+                'input[id*="otp"], input[id*="code"], '
+                'input[formcontrolname*="otp"], input[maxlength="1"]',
+            )
+            return [field for field in fields if field.is_displayed()]
+
+        fields = wait.until(code_fields)
+        code = input("Verification code: ").strip()
+        if not code or not code.isascii() or not code.isdigit():
+            raise ValueError("Verification code must contain only digits")
+        if len(fields) == 1:
+            fields[0].send_keys(code)
+        elif len(fields) == len(code):
+            for field, digit in zip(fields, code):
+                field.send_keys(digit)
+        else:
+            raise RuntimeError("Unexpected verification code input layout")
+        def submit_button(d: uc.Chrome) -> Any:
+            buttons = d.find_elements(
+                By.XPATH,
+                "//button[normalize-space()='Verify' or "
+                "normalize-space()='Continue' or "
+                "normalize-space()='Verify code' or "
+                "normalize-space()='Submit' or "
+                "normalize-space()='Sign In' or "
+                "normalize-space()='Sign in']",
+            )
+            return next(
+                (button for button in buttons
+                 if button.is_displayed() and button.is_enabled()),
+                False,
+            )
+
+        print("Submit verification code")
+        wait.until(submit_button).click()
+        wait.until(self._sign_in_success)
 
     def _login(self, account: Account) -> None:
         with self._chrome_driver() as driver:
@@ -117,7 +193,10 @@ class LoginSession(BaseSession):
             print("Open Sign In sidebar")
             wait.until(
                 ec.visibility_of_element_located(
-                    (By.XPATH, "//span [contains(text(), 'Sign In')]")
+                    (
+                        By.XPATH,
+                        "//span[contains(@class, 'user-greeting')]",
+                    )
                 )
             ).click()
             print("Open Sign In form")
@@ -145,7 +224,7 @@ class LoginSession(BaseSession):
             ).click()
             time.sleep(0.5)
             print("Wait for signed in landing page to load")
-            wait.until(self._sign_in_success)
+            self._complete_sign_in(driver)
             print("Retrieve session information")
             session_cookie = self._parse_cookie_value(
                 driver.get_cookie("SWY_SHARED_SESSION")["value"]

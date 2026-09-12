@@ -1,4 +1,5 @@
 import contextlib
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -7,7 +8,9 @@ from collections.abc import Iterator
 import undetected_chromedriver as uc  # type: ignore
 
 CHROMEDRIVER_PATH = (
-    Path.home()
+    Path(os.environ["SAFEWAY_CHROMEDRIVER_PATH"])
+    if os.environ.get("SAFEWAY_CHROMEDRIVER_PATH")
+    else Path.home()
     / ".local"
     / "share"
     / "undetected_chromedriver"
@@ -35,7 +38,13 @@ def chrome_driver(headless: bool = True) -> Iterator[uc.Chrome]:
         options.add_argument(option)
     if headless:
         options.add_argument("--headless=new")
-    driver = uc.Chrome(options=options)
+    if os.environ.get("SAFEWAY_CHROMEDRIVER_PATH"):
+        driver = uc.Chrome(
+            options=options,
+            driver_executable_path=str(CHROMEDRIVER_PATH),
+        )
+    else:
+        driver = uc.Chrome(options=options)
     yield driver
     driver.quit()
 

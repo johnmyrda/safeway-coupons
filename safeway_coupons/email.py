@@ -4,7 +4,6 @@ import os
 import subprocess
 from email.message import EmailMessage
 from pathlib import Path
-from typing import Optional
 
 from .accounts import Account
 from .errors import ClipError, Error, TooManyClipErrors
@@ -18,7 +17,7 @@ def _send_email(
     mail_message: list[str],
     debug_level: int,
     send_email: bool,
-    attachments: Optional[list[Path]] = None,
+    attachments: list[Path] | None = None,
 ) -> None:
     mail_message_str = os.linesep.join(mail_message)
     if debug_level >= 1:
@@ -56,8 +55,8 @@ def email_clip_results(
     sendmail: list[str],
     account: Account,
     offers: list[Offer],
-    error: Optional[Error],
-    clip_errors: Optional[list[ClipError]],
+    error: Error | None,
+    clip_errors: list[ClipError] | None,
     debug_level: int,
     send_email: bool,
 ) -> None:

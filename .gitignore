@@ -8,3 +8,5 @@
 .venv/
 dist/
 accounts
+debug/
+*.log

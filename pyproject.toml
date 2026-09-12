@@ -1,6 +1,6 @@
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0", "poetry-dynamic-versioning"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling>=1.27", "hatch-vcs>=0.5"]
+build-backend = "hatchling.build"
 
 [project]
 name = "safeway-coupons"
@@ -8,21 +8,20 @@ description = "Automatic coupon clipper for Safeway's online \"Safeway for U\" c
 license = "GPL-3.0-or-later"
 authors = [ { name = "Stephen Kent", email = "smkent@smkent.net" } ]
 readme = "README.md"
-repository = "https://github.com/smkent/safeway-coupons"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
-requires-python = ">=3.9,<4.0"
+requires-python = ">=3.14,<4.0"
 dynamic = [ "version" ]
 dependencies = [
-    "dataclasses-json",
-    "requests",
-    "selenium (>=4.10)",
-    "undetected-chromedriver (>=3.5.0)",
-    "webdriver-manager (>=3.8.6)",
+    "dataclasses-json (>=0.6.7)",
+    "requests (>=2.34.2)",
+    "selenium (>=4.49.0)",
+    "undetected-chromedriver (>=3.5.5)",
+    "webdriver-manager (>=4.1.2)",
     "standard-distutils (>=3.11.9,<4.0.0)"
 ]
 
@@ -30,38 +29,50 @@ dependencies = [
 safeway-coupons = "safeway_coupons.app:main"
 safeway-coupons-init-chromedriver = "safeway_coupons.chrome_driver:init"
 
-[tool.poetry]
-requires-poetry = ">=2.0"
-version = "0.0.0"
+[project.urls]
+Repository = "https://github.com/johnmyrda/safeway-coupons"
 
-[tool.poetry.requires-plugins]
-poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
+[dependency-groups]
+dev = [
+    "bandit[toml]",
+    "black",
+    "cruft",
+    "flake8",
+    "flake8-bugbear",
+    "flake8-pyproject",
+    "flake8-simplify",
+    "isort",
+    "mypy",
+    "pep8-naming",
+    "poethepoet",
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "pytest-github-actions-annotate-failures",
+    "pytest-sugar",
+    "types-requests",
+    "pytest-mock",
+    "responses",
+]
 
-[tool.poetry.group.dev.dependencies]
-bandit = {extras = ["toml"], version = "*"}
-black = "*"
-cruft = "*"
-flake8 = "*"
-flake8-bugbear = "*"
-flake8-pyproject = "*"
-flake8-simplify = "*"
-isort = "*"
-mypy = "*"
-pep8-naming = "*"
-poethepoet = "*"
-pre-commit = "*"
-pytest = "*"
-pytest-cov = "*"
-pytest-github-actions-annotate-failures = "*"
-pytest-sugar = "*"
-types-requests = "*"
-pytest-mock = "*"
-responses = "*"
+[tool.uv]
+required-version = ">=0.12.13"
 
-[tool.poetry-dynamic-versioning]
-enable = true
-vcs = "git"
-style = "semver"
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["safeway_coupons"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/safeway_coupons",
+    "/tests",
+    "/pyproject.toml",
+    "/uv.lock",
+    "/README.md",
+    "/LICENSE",
+]
 
 [tool.poe.tasks.lint]
 cmd = "pre-commit run --all-files --show-diff-on-failure"
@@ -86,6 +97,7 @@ skips = [
 
 [tool.black]
 line-length = 79
+target-version = ["py314"]
 
 [tool.coverage.run]
 source = ["safeway_coupons"]

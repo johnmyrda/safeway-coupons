@@ -1,14 +1,14 @@
 import random
 import time
-from typing import TypeVar
 from collections.abc import Generator, Iterable
+from typing import TypeVar
 
 T = TypeVar("T")
 
 
 def yield_delay(
     iterable: Iterable[T], sleep_level: int, debug_level: int
-) -> Generator[T, None, None]:
+) -> Generator[T]:
     for count, item in enumerate(iterable):
         delay_time = 0.0
         if sleep_level < 2:

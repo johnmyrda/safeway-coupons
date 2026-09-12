@@ -1,14 +1,13 @@
 import configparser
 import itertools
 import os
-from typing import Optional
 
 from .accounts import Account
 
 
 class Config:
     @classmethod
-    def load_accounts(cls, config_file: Optional[str] = None) -> list[Account]:
+    def load_accounts(cls, config_file: str | None = None) -> list[Account]:
         account = cls.load_account_from_env()
         if account:
             return [account]
@@ -19,7 +18,7 @@ class Config:
         return []
 
     @classmethod
-    def load_account_from_env(cls) -> Optional[Account]:
+    def load_account_from_env(cls) -> Account | None:
         username = os.environ.get("SAFEWAY_ACCOUNT_USERNAME")
         password = os.environ.get("SAFEWAY_ACCOUNT_PASSWORD")
         mail_to = os.environ.get("SAFEWAY_ACCOUNT_MAIL_TO")

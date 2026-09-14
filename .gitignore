@@ -2,10 +2,13 @@
 *.pyc
 .coverage
 .git
+.idea/
+.mypy_cache/
 .pytest_cache/
 .pytest_coverage.xml
 .pytest_results.xml
 .venv/
+__pycache__/
 dist/
 accounts
 debug/

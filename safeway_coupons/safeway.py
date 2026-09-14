@@ -32,7 +32,14 @@ class SafewayCoupons:
         self.max_clip_errors = max_clip_errors
 
     def clip_for_account(self, account: Account) -> None:
-        print(f"Clipping coupons for Safeway account {account.username}")
+        if self.dry_run:
+            print(
+                "*** DRY RUN: Coupons will be listed, but nothing will be "
+                "clipped and no email will be sent. ***"
+            )
+            print(f"Checking Safeway account {account.username}")
+        else:
+            print(f"Clipping coupons for Safeway account {account.username}")
         try:
             swy = SafewayClient(account, self.debug_dir)
             clipped_offers: list[Offer] = []
@@ -42,7 +49,13 @@ class SafewayCoupons:
                 o for o in offers if o.status == OfferStatus.Unclipped
             ]
             if not unclipped_offers:
-                print("Nothing to do")
+                if self.dry_run:
+                    print(
+                        "*** DRY RUN COMPLETE: No unclipped coupons found; "
+                        "nothing would be clipped. ***"
+                    )
+                else:
+                    print("Nothing to do")
                 return
             rjust_size = len(str(len(unclipped_offers)))
             for i, offer in enumerate(
@@ -55,9 +68,11 @@ class SafewayCoupons:
                     f"/{len(unclipped_offers)}) "
                 )
                 try:
-                    if not self.dry_run:
+                    if self.dry_run:
+                        print(f"{progress_count} Would clip {offer}")
+                    else:
                         swy.clip(offer)
-                    print(f"{progress_count} Clipped {offer}")
+                        print(f"{progress_count} Clipped {offer}")
                     clipped_offers.append(offer)
                     if (
                         self.max_clip_count
@@ -81,7 +96,15 @@ class SafewayCoupons:
                             errors=clip_errors,
                         )
 
-            print(f"Clipped {len(clipped_offers)} coupons")
+            if self.dry_run:
+                clipped_count = len(clipped_offers)
+                coupon_label = "coupon" if clipped_count == 1 else "coupons"
+                print(
+                    "*** DRY RUN COMPLETE: "
+                    f"{clipped_count} {coupon_label} would be clipped. ***"
+                )
+            else:
+                print(f"Clipped {len(clipped_offers)} coupons")
             email_clip_results(
                 self.sendmail,
                 account,

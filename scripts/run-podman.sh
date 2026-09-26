@@ -20,8 +20,8 @@ fi
 terminal_flag=$1
 shift
 exec podman run "$terminal_flag" --rm --shm-size=256m \
-    --cpus=2 --memory=1280m --memory-swap=1280m --pids-limit=256 \
-    -e SAFEWAY_VERIFICATION_METHOD="${SAFEWAY_VERIFICATION_METHOD:-sms}" \
+    --cpus=2 --memory=2048m --memory-swap=2048m --pids-limit=256 \
+    -e COUPON_VERIFICATION_METHOD="${COUPON_VERIFICATION_METHOD:-${SAFEWAY_VERIFICATION_METHOD:-sms}}" \
     -v "$PWD/accounts:/config/accounts:ro" \
     -v "$PWD/debug:/debug" \
     localhost/safeway-coupons:local \

@@ -63,9 +63,10 @@ def email_clip_results(
     offers_by_type = collections.defaultdict(list)
     for offer in offers:
         offers_by_type[offer.offer_pgm].append(offer)
-    mail_subject = f"Safeway coupons: {len(offers)} clipped"
+    retailer = account.retailer.display_name
+    mail_subject = f"{retailer} coupons: {len(offers)} clipped"
     mail_message: list[str] = [
-        f"Safeway account: {account.username}",
+        f"{retailer} account: {account.username}",
         f"Clipped {len(offers)} total:",
     ]
     for offer_type, offers_this_type in offers_by_type.items():
@@ -84,9 +85,10 @@ def email_error(
     debug_level: int,
     send_email: bool,
 ) -> None:
-    mail_subject = f"Safeway coupons: {error.__class__.__name__} error"
+    retailer = account.retailer.display_name
+    mail_subject = f"{retailer} coupons: {error.__class__.__name__} error"
     mail_message: list[str] = [
-        f"Safeway account: {account.username}",
+        f"{retailer} account: {account.username}",
         f"Error: {error}",
     ]
     if isinstance(error, TooManyClipErrors) and error.clipped_offers:

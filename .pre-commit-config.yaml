@@ -7,45 +7,21 @@ repos:
     - id: debug-statements
     - id: end-of-file-fixer
     - id: trailing-whitespace
-  - repo: https://github.com/psf/black
-    rev: 26.5.1
-    hooks:
-    - id: black
-      args: ["--config", "pyproject.toml"]
-  - repo: https://github.com/pycqa/isort
-    rev: 9.0.1
-    hooks:
-    - id: isort
-  - repo: https://github.com/pycqa/bandit
-    rev: 1.9.4
-    hooks:
-    - id: bandit
-      additional_dependencies: ['.[toml]']
-      args: ["--configfile", "pyproject.toml"]
-      exclude: '^tests/'
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.3.0
-    hooks:
-    - id: flake8
-      additional_dependencies:
-      - flake8-bugbear
-      - flake8-pyproject
-      - flake8-simplify
-      - pep8-naming
-  - repo: https://github.com/pycqa/autoflake
-    rev: v2.4.0
-    hooks:
-    - id: autoflake
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-    - id: pyupgrade
-      args: ["--py314-plus", "--keep-runtime-typing"]
   - repo: local
     hooks:
-    - id: mypy
-      name: mypy
+    - id: ruff-check
+      name: ruff check
       language: system
       types_or: [python, pyi]
-      entry: uv run --locked mypy
+      entry: uv run --locked ruff check --fix
+    - id: ruff-format
+      name: ruff format
+      language: system
+      types_or: [python, pyi]
+      entry: uv run --locked ruff format
+    - id: ty
+      name: ty
+      language: system
+      types_or: [python, pyi]
+      entry: uv run --locked ty check
       pass_filenames: false

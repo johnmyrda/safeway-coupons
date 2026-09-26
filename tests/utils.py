@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from safeway_coupons.accounts import Account
 from safeway_coupons.models import Offer, OfferStatus, OfferType
+from safeway_coupons.retailers import Retailer
 
 
 @dataclass
@@ -28,10 +29,11 @@ def create_offer(offer_id: str) -> Offer:
     )
 
 
-def create_account() -> Account:
+def create_account(retailer: Retailer = Retailer.SAFEWAY) -> Account:
     return Account(
         username="ness@onett.example",
         password="pk_fire",
         mail_from="ness@onett.example",
         mail_to="ness@onett.example",
+        retailer=retailer,
     )

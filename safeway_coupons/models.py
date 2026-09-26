@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 import dataclasses_json
@@ -12,7 +12,7 @@ def datetime_encode(dt: datetime) -> str:
 def datetime_decode(value: str | None) -> datetime | None:
     if not value:
         return None
-    return datetime.fromtimestamp(int(value) / 1000, timezone.utc)
+    return datetime.fromtimestamp(int(value) / 1000, UTC)
 
 
 class Model(dataclasses_json.DataClassJsonMixin):

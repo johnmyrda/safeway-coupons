@@ -37,9 +37,15 @@ class SafewayCoupons:
                 "*** DRY RUN: Coupons will be listed, but nothing will be "
                 "clipped and no email will be sent. ***"
             )
-            print(f"Checking Safeway account {account.username}")
+            print(
+                f"Checking {account.retailer.display_name} account "
+                f"{account.username}"
+            )
         else:
-            print(f"Clipping coupons for Safeway account {account.username}")
+            print(
+                f"Clipping coupons for {account.retailer.display_name} "
+                f"account {account.username}"
+            )
         try:
             swy = SafewayClient(account, self.debug_dir)
             clipped_offers: list[Offer] = []
@@ -94,7 +100,7 @@ class SafewayCoupons:
                             e,
                             clipped_offers=clipped_offers,
                             errors=clip_errors,
-                        )
+                        ) from e
 
             if self.dry_run:
                 clipped_count = len(clipped_offers)

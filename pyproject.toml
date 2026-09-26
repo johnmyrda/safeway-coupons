@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "safeway-coupons"
-description = "Automatic coupon clipper for Safeway's online \"Safeway for U\" coupons"
+description = "Automatic coupon clipper for Safeway and Jewel-Osco loyalty offers"
 license = "GPL-3.0-or-later"
 authors = [ { name = "Stephen Kent", email = "smkent@smkent.net" } ]
 readme = "README.md"
@@ -34,16 +34,7 @@ Repository = "https://github.com/johnmyrda/safeway-coupons"
 
 [dependency-groups]
 dev = [
-    "bandit[toml]",
-    "black",
     "cruft",
-    "flake8",
-    "flake8-bugbear",
-    "flake8-pyproject",
-    "flake8-simplify",
-    "isort",
-    "mypy",
-    "pep8-naming",
     "poethepoet",
     "pre-commit",
     "pytest",
@@ -53,6 +44,8 @@ dev = [
     "types-requests",
     "pytest-mock",
     "responses",
+    "ruff>=0.16.8",
+    "ty>=0.0.81",
 ]
 
 [tool.uv]
@@ -86,18 +79,32 @@ help = "Run unit tests with pytest"
 sequence = ["lint", "pytest"]
 help = "Run all tests"
 
-[tool.bandit]
-skips = [
-    "B101",  # assert_used
-    "B113",  # request_without_timeout
-    "B311",  # blacklist_random
-    "B404",  # blacklist_subprocess
-    "B603",  # subprocess_without_shell_equals_true
+[tool.ruff]
+line-length = 79
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "B",    # flake8-bugbear
+    "E",    # pycodestyle errors
+    "F",    # Pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "S",    # flake8-bandit
+    "SIM",  # flake8-simplify
+    "UP",   # pyupgrade
+]
+ignore = [
+    "N818",  # Preserve existing public exception names.
+    "S101",  # assert
+    "S113",  # request_without_timeout
+    "S311",  # suspicious_non_cryptographic_random_usage
+    "S404",  # suspicious_subprocess_import
+    "S603",  # subprocess_without_shell_equals_true
 ]
 
-[tool.black]
-line-length = 79
-target-version = ["py314"]
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S106"]  # Test account passwords are fixtures.
 
 [tool.coverage.run]
 source = ["safeway_coupons"]
@@ -108,24 +115,6 @@ show_missing = true
 
 [tool.cruft]
 skip = [".git"]
-
-[tool.flake8]
-exclude = "./.*"
-
-[tool.isort]
-atomic = true
-profile = "black"
-line_length = 79
-
-[tool.mypy]
-files = [ "tests", "safeway_coupons" ]
-mypy_path = "types"
-disallow_untyped_defs = true
-no_implicit_optional = true
-check_untyped_defs = true
-warn_return_any = true
-show_error_codes = true
-warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 addopts = """\

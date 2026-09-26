@@ -3,6 +3,7 @@ import itertools
 import os
 
 from .accounts import Account
+from .retailers import Retailer
 
 
 class Config:
@@ -22,13 +23,17 @@ class Config:
         username = os.environ.get("SAFEWAY_ACCOUNT_USERNAME")
         password = os.environ.get("SAFEWAY_ACCOUNT_PASSWORD")
         mail_to = os.environ.get("SAFEWAY_ACCOUNT_MAIL_TO")
-        mail_from = os.environ.get("SAFEWAY_ACCOUNT_MAIL_TO")
+        mail_from = os.environ.get("SAFEWAY_ACCOUNT_MAIL_FROM")
         if username and password:
+            retailer = cls.parse_retailer(
+                os.environ.get("COUPON_RETAILER", Retailer.SAFEWAY)
+            )
             return Account(
                 username=username,
                 password=password,
                 mail_to=mail_to or username,
                 mail_from=mail_from or username,
+                retailer=retailer,
             )
         return None
 
@@ -49,13 +54,31 @@ class Config:
                 if config.has_option(section, "notify")
                 else None
             )
-            username = str(section)
+            username = config.get(section, "username", fallback=str(section))
+            retailer = cls.parse_retailer(
+                config.get(
+                    section,
+                    "retailer",
+                    fallback=Retailer.SAFEWAY,
+                )
+            )
             accounts.append(
                 Account(
                     username=username,
                     password=config.get(section, "password"),
                     mail_to=mail_to or username,
                     mail_from=mail_from or username,
+                    retailer=retailer,
                 )
             )
         return accounts
+
+    @staticmethod
+    def parse_retailer(value: str) -> Retailer:
+        try:
+            return Retailer(value.lower())
+        except ValueError as e:
+            choices = ", ".join(retailer.value for retailer in Retailer)
+            raise ValueError(
+                f"Unknown retailer {value!r}; expected one of: {choices}"
+            ) from e

@@ -3,13 +3,14 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from selenium.common.exceptions import WebDriverException
 
-from safeway_coupons.session import LoginSession
+from safeway_coupons.session import ExceptionWithAttachments, LoginSession
 
 
 @pytest.mark.parametrize("method", ["sms", "email"])
 def test_verification(method: str, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("SAFEWAY_VERIFICATION_METHOD", method)
+    monkeypatch.setenv("COUPON_VERIFICATION_METHOD", method)
     session = LoginSession.__new__(LoginSession)
     driver = MagicMock()
     field = MagicMock()
@@ -57,6 +58,21 @@ def test_verification_requires_terminal() -> None:
     ):
         session._complete_sign_in(driver)
     driver.find_element.assert_not_called()
+
+
+def test_chrome_startup_failure_without_driver() -> None:
+    session = LoginSession.__new__(LoginSession)
+    session.debug_dir = None
+
+    with (
+        patch(
+            "safeway_coupons.session.chrome_driver",
+            side_effect=WebDriverException("startup failed"),
+        ),
+        pytest.raises(ExceptionWithAttachments, match="startup failed"),
+        session._chrome_driver(),
+    ):
+        pass
 
 
 def test_verification_detects_visible_label_with_hidden_radio() -> None:

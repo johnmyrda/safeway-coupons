@@ -3,20 +3,20 @@ import json
 import os
 import sys
 import time
-import urllib
+import urllib.parse
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-import requests
+import requests as requests_module
 import selenium.webdriver.support.expected_conditions as ec
-import undetected_chromedriver as uc  # type: ignore
+from requests.adapters import HTTPAdapter
 from selenium.common.exceptions import (
     NoSuchElementException,
     StaleElementReferenceException,
     WebDriverException,
 )
-from selenium.webdriver.remote.webdriver import By
+from selenium.webdriver.remote.webdriver import By, WebDriver
 from selenium.webdriver.support.wait import WebDriverWait
 
 from .accounts import Account
@@ -42,12 +42,10 @@ class BaseSession:
     )
 
     @property
-    def requests(self) -> requests.Session:
+    def requests(self) -> requests_module.Session:
         if not hasattr(self, "_requests"):
-            session = requests.Session()
-            session.mount(
-                "https://", requests.adapters.HTTPAdapter(pool_maxsize=1)
-            )
+            session = requests_module.Session()
+            session.mount("https://", HTTPAdapter(pool_maxsize=1))
             session.headers.update({"DNT": "1", "User-Agent": self.USER_AGENT})
             self._requests = session
         return self._requests
@@ -55,6 +53,7 @@ class BaseSession:
 
 class LoginSession(BaseSession):
     def __init__(self, account: Account, debug_dir: Path | None) -> None:
+        self.account = account
         self.access_token: str | None = None
         self.store_id: str | None = None
         self.debug_dir: Path | None = debug_dir
@@ -68,13 +67,15 @@ class LoginSession(BaseSession):
             raise AuthenticationFailure(e, account) from e
 
     @contextlib.contextmanager
-    def _chrome_driver(self, headless: bool = True) -> Iterator[uc.Chrome]:
+    def _chrome_driver(self, headless: bool = True) -> Iterator[WebDriver]:
+        driver: WebDriver | None = None
         try:
-            with chrome_driver(headless=headless) as driver:
+            with chrome_driver(headless=headless) as active_driver:
+                driver = active_driver
                 yield driver
         except WebDriverException as e:
             attachments: list[Path] = []
-            if self.debug_dir:
+            if self.debug_dir and driver is not None:
                 path = self.debug_dir / "screenshot.png"
                 with contextlib.suppress(WebDriverException):
                     driver.save_screenshot(path)
@@ -84,7 +85,7 @@ class LoginSession(BaseSession):
             ) from e
 
     @staticmethod
-    def _sign_in_success(driver: uc.Chrome) -> bool:
+    def _sign_in_success(driver: WebDriver) -> bool:
         try:
             element = driver.find_element(
                 By.XPATH, '//span [contains(@class, "user-greeting")]'
@@ -95,10 +96,10 @@ class LoginSession(BaseSession):
         except NoSuchElementException, StaleElementReferenceException:
             return False
 
-    def _complete_sign_in(self, driver: uc.Chrome) -> None:
+    def _complete_sign_in(self, driver: WebDriver) -> None:
         wait = WebDriverWait(driver, 30)
 
-        def signed_in_or_verification(d: uc.Chrome) -> bool:
+        def signed_in_or_verification(d: WebDriver) -> bool:
             return self._sign_in_success(d) or any(
                 element.is_displayed()
                 for element in d.find_elements(
@@ -109,11 +110,12 @@ class LoginSession(BaseSession):
         wait.until(signed_in_or_verification)
         if self._sign_in_success(driver):
             return
-        method = os.environ.get("SAFEWAY_VERIFICATION_METHOD", "sms")
+        method = os.environ.get(
+            "COUPON_VERIFICATION_METHOD",
+            os.environ.get("SAFEWAY_VERIFICATION_METHOD", "sms"),
+        )
         if method not in {"sms", "email"}:
-            raise ValueError(
-                "SAFEWAY_VERIFICATION_METHOD must be sms or email"
-            )
+            raise ValueError("COUPON_VERIFICATION_METHOD must be sms or email")
         if not sys.stdin.isatty():
             raise RuntimeError(
                 "Device verification required. Run interactively with "
@@ -128,7 +130,7 @@ class LoginSession(BaseSession):
         ).click()
         print(f"Requested verification code via {method}.")
 
-        def code_fields(d: uc.Chrome) -> Any:
+        def code_fields(d: WebDriver) -> Any:
             fields = d.find_elements(
                 By.CSS_SELECTOR,
                 'input[autocomplete="one-time-code"], '
@@ -145,12 +147,12 @@ class LoginSession(BaseSession):
         if len(fields) == 1:
             fields[0].send_keys(code)
         elif len(fields) == len(code):
-            for field, digit in zip(fields, code):
+            for field, digit in zip(fields, code, strict=True):
                 field.send_keys(digit)
         else:
             raise RuntimeError("Unexpected verification code input layout")
 
-        def submit_button(d: uc.Chrome) -> Any:
+        def submit_button(d: WebDriver) -> Any:
             buttons = d.find_elements(
                 By.XPATH,
                 "//button[normalize-space()='Verify' or "
@@ -177,9 +179,8 @@ class LoginSession(BaseSession):
         with self._chrome_driver() as driver:
             driver.implicitly_wait(10)
             wait = WebDriverWait(driver, 10)
-            # Navigate to the website URL
-            url = "https://www.safeway.com"
-            print("Connect to safeway.com")
+            url = account.retailer.login_url
+            print(f"Connect to {account.retailer.display_name} at {url}")
             driver.get(url)
             try:
                 button = driver.find_element(
@@ -190,7 +191,8 @@ class LoginSession(BaseSession):
                     print("Decline cookie prompt")
                     button.click()
                     print(
-                        "Return to safeway.com after declining cookie prompt"
+                        f"Return to {account.retailer.display_name} after "
+                        "declining cookie prompt"
                     )
                     driver.get(url)
             except NoSuchElementException:
@@ -231,11 +233,11 @@ class LoginSession(BaseSession):
             print("Wait for signed in landing page to load")
             self._complete_sign_in(driver)
             print("Retrieve session information")
-            session_cookie = self._parse_cookie_value(
-                driver.get_cookie("SWY_SHARED_SESSION")["value"]
+            session_cookie = self._get_cookie_value(
+                driver, "SWY_SHARED_SESSION"
             )
-            session_info_cookie = self._parse_cookie_value(
-                driver.get_cookie("SWY_SHARED_SESSION_INFO")["value"]
+            session_info_cookie = self._get_cookie_value(
+                driver, "SWY_SHARED_SESSION_INFO"
             )
             self.access_token = session_cookie["accessToken"]
             try:
@@ -243,5 +245,14 @@ class LoginSession(BaseSession):
             except Exception as e:
                 raise Exception("Unable to retrieve store ID") from e
 
-    def _parse_cookie_value(self, value: str) -> Any:
+    @classmethod
+    def _get_cookie_value(cls, driver: WebDriver, name: str) -> Any:
+        cookie = driver.get_cookie(name)
+        value = cookie.get("value") if cookie else None
+        if not isinstance(value, str):
+            raise ValueError(f"Unable to retrieve {name} cookie")
+        return cls._parse_cookie_value(value)
+
+    @staticmethod
+    def _parse_cookie_value(value: str) -> Any:
         return json.loads(urllib.parse.unquote(value))

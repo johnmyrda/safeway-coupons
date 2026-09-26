@@ -5,7 +5,8 @@ import sys
 from collections.abc import Iterator
 from pathlib import Path
 
-import undetected_chromedriver as uc  # type: ignore
+import undetected_chromedriver as uc
+from selenium.webdriver.remote.webdriver import WebDriver
 
 CHROMEDRIVER_PATH = (
     Path(os.environ["SAFEWAY_CHROMEDRIVER_PATH"])
@@ -23,9 +24,8 @@ class ChromeDriverDoesNotExist(Exception):
 
 
 @contextlib.contextmanager
-def chrome_driver(headless: bool = True) -> Iterator[uc.Chrome]:
+def chrome_driver(headless: bool = True) -> Iterator[WebDriver]:
     options = uc.ChromeOptions()
-    options.headless = headless
     for option in [
         "--incognito",
         "--no-sandbox",
@@ -38,6 +38,7 @@ def chrome_driver(headless: bool = True) -> Iterator[uc.Chrome]:
         options.add_argument(option)
     if headless:
         options.add_argument("--headless=new")
+    driver: WebDriver
     if os.environ.get("SAFEWAY_CHROMEDRIVER_PATH"):
         driver = uc.Chrome(
             options=options,

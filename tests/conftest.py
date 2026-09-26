@@ -1,6 +1,6 @@
 import json
 import time
-import urllib
+import urllib.parse
 from collections.abc import Iterator, Mapping
 from typing import cast
 from unittest import mock
@@ -9,7 +9,7 @@ import pytest
 import pytest_mock
 import requests
 import responses
-import undetected_chromedriver as uc  # type: ignore
+import undetected_chromedriver as uc
 from selenium.webdriver.support.wait import WebDriverWait
 
 from safeway_coupons.models import Offer, OfferList

@@ -1,15 +1,15 @@
 import json
 import time
-import urllib
-from typing import Optional, cast
+import urllib.parse
 from collections.abc import Iterator, Mapping
+from typing import cast
 from unittest import mock
 
 import pytest
 import pytest_mock
 import requests
 import responses
-import undetected_chromedriver as uc  # type: ignore
+import undetected_chromedriver as uc
 from selenium.webdriver.support.wait import WebDriverWait
 
 from safeway_coupons.models import Offer, OfferList
@@ -47,12 +47,13 @@ def login_success(mock_undetected_chromedriver: mock.MagicMock) -> None:
         "SWY_SHARED_SESSION_INFO": {"info": {"J4U": {"storeId": 42}}},
     }
 
-    def _get_cookie(name: str) -> dict[str, Optional[str]]:
+    def _get_cookie(name: str) -> dict[str, str | None]:
         value = cookies.get(name)
         return {
             "value": urllib.parse.quote(json.dumps(value)) if value else None
         }
 
+    mock_undetected_chromedriver.find_element.return_value.text = "Hi, Ness"
     mock_undetected_chromedriver.get_cookie.side_effect = _get_cookie
     return
 

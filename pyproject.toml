@@ -1,28 +1,27 @@
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0", "poetry-dynamic-versioning"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling>=1.27", "hatch-vcs>=0.5"]
+build-backend = "hatchling.build"
 
 [project]
 name = "safeway-coupons"
-description = "Automatic coupon clipper for Safeway's online \"Safeway for U\" coupons"
+description = "Automatic coupon clipper for Safeway and Jewel-Osco loyalty offers"
 license = "GPL-3.0-or-later"
 authors = [ { name = "Stephen Kent", email = "smkent@smkent.net" } ]
 readme = "README.md"
-repository = "https://github.com/smkent/safeway-coupons"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
-requires-python = ">=3.9,<4.0"
+requires-python = ">=3.14,<4.0"
 dynamic = [ "version" ]
 dependencies = [
-    "dataclasses-json",
-    "requests",
-    "selenium (>=4.10)",
-    "undetected-chromedriver (>=3.5.0)",
-    "webdriver-manager (>=3.8.6)",
+    "dataclasses-json (>=0.6.7)",
+    "requests (>=2.34.2)",
+    "selenium (>=4.49.0)",
+    "undetected-chromedriver (>=3.5.5)",
+    "webdriver-manager (>=4.1.2)",
     "standard-distutils (>=3.11.9,<4.0.0)"
 ]
 
@@ -30,38 +29,43 @@ dependencies = [
 safeway-coupons = "safeway_coupons.app:main"
 safeway-coupons-init-chromedriver = "safeway_coupons.chrome_driver:init"
 
-[tool.poetry]
-requires-poetry = ">=2.0"
-version = "0.0.0"
+[project.urls]
+Repository = "https://github.com/johnmyrda/safeway-coupons"
 
-[tool.poetry.requires-plugins]
-poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
+[dependency-groups]
+dev = [
+    "cruft",
+    "poethepoet",
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "pytest-github-actions-annotate-failures",
+    "pytest-sugar",
+    "types-requests",
+    "pytest-mock",
+    "responses",
+    "ruff>=0.16.8",
+    "ty>=0.0.81",
+]
 
-[tool.poetry.group.dev.dependencies]
-bandit = {extras = ["toml"], version = "*"}
-black = "*"
-cruft = "*"
-flake8 = "*"
-flake8-bugbear = "*"
-flake8-pyproject = "*"
-flake8-simplify = "*"
-isort = "*"
-mypy = "*"
-pep8-naming = "*"
-poethepoet = "*"
-pre-commit = "*"
-pytest = "*"
-pytest-cov = "*"
-pytest-github-actions-annotate-failures = "*"
-pytest-sugar = "*"
-types-requests = "*"
-pytest-mock = "*"
-responses = "*"
+[tool.uv]
+required-version = ">=0.12.13"
 
-[tool.poetry-dynamic-versioning]
-enable = true
-vcs = "git"
-style = "semver"
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["safeway_coupons"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/safeway_coupons",
+    "/tests",
+    "/pyproject.toml",
+    "/uv.lock",
+    "/README.md",
+    "/LICENSE",
+]
 
 [tool.poe.tasks.lint]
 cmd = "pre-commit run --all-files --show-diff-on-failure"
@@ -75,17 +79,32 @@ help = "Run unit tests with pytest"
 sequence = ["lint", "pytest"]
 help = "Run all tests"
 
-[tool.bandit]
-skips = [
-    "B101",  # assert_used
-    "B113",  # request_without_timeout
-    "B311",  # blacklist_random
-    "B404",  # blacklist_subprocess
-    "B603",  # subprocess_without_shell_equals_true
+[tool.ruff]
+line-length = 79
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "B",    # flake8-bugbear
+    "E",    # pycodestyle errors
+    "F",    # Pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "S",    # flake8-bandit
+    "SIM",  # flake8-simplify
+    "UP",   # pyupgrade
+]
+ignore = [
+    "N818",  # Preserve existing public exception names.
+    "S101",  # assert
+    "S113",  # request_without_timeout
+    "S311",  # suspicious_non_cryptographic_random_usage
+    "S404",  # suspicious_subprocess_import
+    "S603",  # subprocess_without_shell_equals_true
 ]
 
-[tool.black]
-line-length = 79
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S106"]  # Test account passwords are fixtures.
 
 [tool.coverage.run]
 source = ["safeway_coupons"]
@@ -96,24 +115,6 @@ show_missing = true
 
 [tool.cruft]
 skip = [".git"]
-
-[tool.flake8]
-exclude = "./.*"
-
-[tool.isort]
-atomic = true
-profile = "black"
-line_length = 79
-
-[tool.mypy]
-files = [ "tests", "safeway_coupons" ]
-mypy_path = "types"
-disallow_untyped_defs = true
-no_implicit_optional = true
-check_untyped_defs = true
-warn_return_any = true
-show_error_codes = true
-warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 addopts = """\

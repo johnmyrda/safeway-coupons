@@ -11,7 +11,7 @@ from .safeway import SafewayCoupons
 
 
 def _parse_args() -> argparse.Namespace:
-    description = 'Automatic coupon clipper for "Safeway for U" coupons'
+    description = "Automatic coupon clipper for supported grocery retailers"
     arg_parser = argparse.ArgumentParser(description=description)
     arg_parser.add_argument(
         "-c",
@@ -19,8 +19,8 @@ def _parse_args() -> argparse.Namespace:
         dest="accounts_config",
         metavar="file",
         help=(
-            "Path to configuration file containing Safeway "
-            "accounts information"
+            "Path to configuration file containing retailer account "
+            "information"
         ),
     )
     arg_parser.add_argument(
@@ -105,7 +105,7 @@ def main() -> None:
     args = _parse_args()
     accounts = Config.load_accounts(config_file=args.accounts_config)
     if not accounts:
-        print("Error: No Safeway account(s) configured", file=sys.stderr)
+        print("Error: No retailer account(s) configured", file=sys.stderr)
         sys.exit(1)
     if args.debug_level >= 2:
         HTTPConnection.debuglevel = 1

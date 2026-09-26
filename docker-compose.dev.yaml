@@ -1,9 +1,0 @@
-services:
-  safeway-coupons:
-    build: .
-    command: /usr/local/bin/safeway-coupons -c /accounts -n -d -m 1
-    environment:
-      PYTHONUNBUFFERED: 1
-    restart: "no"
-    volumes:
-      - ./accounts:/accounts:ro

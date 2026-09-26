@@ -1,9 +1,6 @@
 ---
 name: Test
 
-env:
-  ENABLE_COVERAGE: true
-
 on:
   pull_request:
   push:
@@ -13,34 +10,29 @@ on:
 
 jobs:
   Test:
-    name: Python ${{ matrix.python-version }}, Poetry ${{ matrix.poetry-version }}
+    name: Python ${{ matrix.python-version }}
 
     strategy:
       matrix:
         os:
           - Ubuntu
         python-version:
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.13"
-        poetry-version:
-          - "2.0"
+          - "3.14"
 
     runs-on: ${{ matrix.os }}-latest
     steps:
       - name: 💾 Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: 🐍 Set up Python project with Poetry
-        uses: ./.github/workflows/actions/python-poetry
+      - name: 🐍 Set up Python project with uv
+        uses: ./.github/workflows/actions/python-uv
         with:
           python_version: ${{ matrix.python-version }}
-          poetry_version: ${{ matrix.poetry-version }}
 
       - name: 🔥 Test
-        run: poetry run poe test
+        run: uv run --locked poe test
 
       - name: 🚒 Create test summary
         uses: test-summary/action@v2
@@ -48,15 +40,6 @@ jobs:
         with:
           paths: ./.pytest_results.xml
 
-      - name: 📊 Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        if: ${{ env.ENABLE_COVERAGE == 'true' }}
-        with:
-          fail_ci_if_error: true
-          files: ./.pytest_coverage.xml
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true

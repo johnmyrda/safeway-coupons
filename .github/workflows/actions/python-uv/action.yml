@@ -1,0 +1,29 @@
+name: Set up Python project with uv
+
+inputs:
+  python_version:
+    description: "Python version to install"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up uv and Python
+      uses: astral-sh/setup-uv@v7
+      with:
+        version: "0.12.13"
+        python-version: ${{ inputs.python_version }}
+        enable-cache: true
+
+    - name: Install project and dependencies
+      shell: bash
+      run: |
+        uv sync --locked
+        PROJECT_VERSION=$(uv run --locked python -c 'from importlib.metadata import version; print(version("safeway-coupons"))')
+        echo "PROJECT_VERSION=${PROJECT_VERSION}" >> "$GITHUB_ENV"
+
+    - name: Cache pre-commit hooks
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit-${{ runner.os }}-python-${{ inputs.python_version }}-${{ hashFiles('.pre-commit-config.yaml') }}

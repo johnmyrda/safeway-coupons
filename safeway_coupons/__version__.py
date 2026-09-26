@@ -1,1 +1,3 @@
-__version__ = "0.2.3-post.9+e54d358"
+from importlib.metadata import version
+
+__version__ = version("safeway-coupons")

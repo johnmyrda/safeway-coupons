@@ -1,212 +1,152 @@
-# Automatic Safeway coupon clipper
+# Automatic Safeway and Jewel-Osco coupon clipper
 
-[![PyPI](https://img.shields.io/pypi/v/safeway-coupons)][pypi]
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/safeway-coupons)][pypi]
-[![Build](https://img.shields.io/github/checks-status/smkent/safeway-coupons/main?label=build)][gh-actions]
-[![codecov](https://codecov.io/gh/smkent/safeway-coupons/branch/main/graph/badge.svg)][codecov]
-[![GitHub stars](https://img.shields.io/github/stars/smkent/safeway-coupons?style=social)][repo]
+[![Build](https://img.shields.io/github/checks-status/johnmyrda/safeway-coupons/main?label=build)][gh-actions]
 
-**safeway-coupons** is a script that will log in to an account on safeway.com,
-and attempt to select all of the "Safeway for U" electronic coupons on the site
-so they don't have to each be clicked manually.
+**safeway-coupons** signs in to Safeway or Jewel-Osco, finds available
+loyalty offers, and clips offers that are not already associated with the
+account.
 
-## Design notes
+## How it works
 
-Safeway's sign in page is protected by a web application firewall (WAF).
-safeway-coupons performs authentication using a headless instance of Google
-Chrome. Authentication may fail based on your IP's reputation, either by
-presenting a CAPTCHA or denying sign in attempts altogether. safeway-coupons
-currently does not have support for prompting the user to solve CAPTCHAs.
+1. Headless Chromium signs in and obtains the authenticated retailer session.
+2. The retailer's offers API is used to retrieve and clip coupons.
+3. Results are printed for each configured account.
 
-Once a signed in session is established, coupon clipping is performed using HTTP
-requests via [requests][requests].
+The retailer may require a one-time code sent by SMS or email. The runner keeps
+an interactive terminal available for this prompt. CAPTCHA challenges are not
+supported.
 
-## Installation and usage with Docker
+## Setup
 
-A Docker container is provided which runs safeway-coupons with cron. The cron
-schedule and your Safeway account details may be configured using environment
-variables, or with an accounts file.
-
-Example `docker-compose.yaml` with configuration via environment variables:
-
-```yaml
-version: "3.7"
-
-services:
-  safeway-coupons:
-    image: ghcr.io/smkent/safeway-coupons:latest
-    environment:
-      CRON_SCHEDULE: "0 2 * * *"  # Run at 2:00 AM UTC each day
-      # TZ: Antarctica/McMurdo  # Optional time zone to use instead of UTC
-      SMTPHOST: your.smtp.host
-      SAFEWAY_ACCOUNT_USERNAME: your.safeway.account.email@example.com
-      SAFEWAY_ACCOUNT_PASSWORD: very_secret
-      SAFEWAY_ACCOUNT_MAIL_FROM: your.email@example.com
-      SAFEWAY_ACCOUNT_MAIL_TO: your.email@example.com
-      # EXTRA_ARGS: --debug  # Optional
-    restart: unless-stopped
-```
-
-Example `docker-compose.yaml` with configuration via accounts file:
-
-```yaml
-version: "3.7"
-
-services:
-  safeway-coupons:
-    image: ghcr.io/smkent/safeway-coupons:latest
-    environment:
-      CRON_SCHEDULE: "0 2 * * *"  # Run at 2:00 AM UTC each day
-      # TZ: Antarctica/McMurdo  # Optional time zone to use instead of UTC
-      SMTPHOST: your.smtp.host
-      SAFEWAY_ACCOUNTS_FILE: /accounts_file
-      # EXTRA_ARGS: --debug  # Optional
-    restart: unless-stopped
-    volumes:
-      - path/to/safeway_accounts_file:/accounts_file:ro
-```
-
-Start the container by running:
+The supported workflow uses Podman and the included container image. The image
+contains Debian Chromium and its matching driver.
 
 ```console
-docker-compose up -d
+podman machine start
+podman build -t localhost/safeway-coupons:local .
+python3 scripts/configure.py
 ```
 
-Debugging information can be viewed in the container log:
-
-```console
-docker-compose logs -f
-```
-
-## Installation from PyPI
-
-### Prerequisites
-
-* Google Chrome (for authentication performed via Selenium).
-* Optional: `sendmail` (for email support)
-
-### Installation
-
-[safeway-coupons is available on PyPI][pypi]:
-
-```console
-pip install safeway-coupons
-```
-
-### Usage
-
-For best results, run this program once a day or so with a cron daemon.
-
-For full usage options, run
-
-```console
-safeway-coupons --help
-```
-
-### Configuration
-
-**safeway-coupons** can clip coupons for one or more Safeway accounts in a
-single run, depending on the configuration method used.
-
-If a sender email address is configured, a summary email will be sent for each
-Safeway account via `sendmail`. The email recipient defaults to the Safeway
-account email address, but can be overridden for each account.
-
-Accounts are searched via the following methods in the listed order. Only one
-account configuration method may be used at a time.
-
-#### With environment variables
-
-A single Safeway account can be configured with environment variables:
-
-* `SAFEWAY_ACCOUNT_USERNAME`: Account email address (required)
-* `SAFEWAY_ACCOUNT_PASSWORD`: Account password (required)
-* `SAFEWAY_ACCOUNT_MAIL_FROM`: Sender address for email summary
-* `SAFEWAY_ACCOUNT_MAIL_TO`: Recipient address for email summary
-
-#### With config file
-
-Multiple Safeway accounts can be provided in an ini-style config file, with a
-section for each account. For example:
+The configuration script prompts for one retailer account and creates the
+Git-ignored `accounts` file. To configure multiple accounts or retailers, edit
+that file and add one section per account. Safeway is the default when
+`retailer` is omitted.
 
 ```ini
-email_sender = sender@example.com   ; optional
+[safeway-account]
+retailer = safeway
+username = shared.account@example.com
+password = safeway-password
 
-[safeway.account@example.com]       ; required
-password = 12345                    ; required
-notify = your.email@example.com     ; optional
+[jewel-account]
+retailer = jewel-osco
+username = shared.account@example.com
+password = jewel-password
 ```
 
-Provide the path to your config file using the `-c` or `--accounts-config`
-option:
+For backward compatibility, a section name is used as the username when the
+`username` option is omitted.
+
+## Running
+
+Start with a dry run. With no arguments, the runner signs in and lists what it
+would clip without changing any coupons:
 
 ```console
-safeway-coupons -c path/to/config/file
+sh scripts/run-podman.sh
+```
+
+After reviewing the output, clip one coupon as a live test or clip everything:
+
+```console
+sh scripts/run-podman.sh --max-clip 1
+sh scripts/run-podman.sh --max-clip 0
+```
+
+Use email instead of SMS for device verification when needed:
+
+```console
+COUPON_VERIFICATION_METHOD=email sh scripts/run-podman.sh
+```
+
+Additional application options can be passed through the runner:
+
+```console
+sh scripts/run-podman.sh --help
+sh scripts/run-podman.sh --dry-run --debug
+```
+
+The runner mounts `accounts` read-only, disables result email, and does not
+schedule future runs. Debug files are written to the Git-ignored `debug/`
+directory and may contain account-specific information.
+
+Stop the Podman machine when it is no longer needed:
+
+```console
+podman machine stop
+```
+
+## Scheduled runs
+
+A user crontab runs the clipper daily at 3:15 AM local time:
+
+```cron
+15 3 * * * /Users/john/git/safeway-coupons/scripts/run-scheduled.sh
+```
+
+The scheduler performs a live all-coupon run, starts and stops Podman when
+needed, prevents overlapping runs, and keeps private daily logs in `logs/` for
+30 days. The Mac must be awake at the scheduled time. Device verification
+cannot be completed from cron; if it is requested, inspect the log and run the
+clipper interactively.
+
+The scheduler can be tested safely with an explicit dry run:
+
+```console
+scripts/run-scheduled.sh --dry-run
+```
+
+## Project layout
+
+- `safeway_coupons/session.py` handles browser sign-in and device verification.
+- `safeway_coupons/client.py` communicates with the retailer's offers API.
+- `safeway_coupons/safeway.py` coordinates offer selection and clipping.
+- `safeway_coupons/retailers.py` defines retailer URLs and display names.
+- `safeway_coupons/app.py` defines the command-line interface.
+- `scripts/configure.py` creates the local account configuration.
+- `scripts/run-podman.sh` runs the container with safe local defaults.
+- `scripts/run-scheduled.sh` manages unattended cron runs and logging.
+
+## Maintenance
+
+Update dependencies, run checks, and rebuild the image:
+
+```console
+uv lock --upgrade
+uv sync --locked
+uv run --locked poe test
+podman build --pull=always --no-cache -t localhost/safeway-coupons:local .
 ```
 
 ## Development
 
-### [Poetry][poetry] installation
-
-Via [`pipx`][pipx]:
+Set up the environment and optional pre-commit hook:
 
 ```console
-pip install pipx
-pipx install poetry
-pipx inject poetry poetry-pre-commit-plugin
+uv sync --locked
+uv run --locked pre-commit install
 ```
 
-Via `pip`:
+Ruff handles linting and formatting, while ty performs static type checking.
+Common commands:
 
 ```console
-pip install poetry
-poetry self add poetry-pre-commit-plugin
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+uv run --locked ty check safeway_coupons tests
+uv run --locked pytest
+uv run --locked poe test
+uv build
 ```
 
-### Invocation with docker-compose
-
-safeway-coupons can be executed within a Docker container using
-`docker-compose.dev.yaml`.
-
-To use, first create an `accounts` file in the same directory with your
-safeway-coupons accounts configuration. Then, execute safeway-coupons within a
-container using docker-compose:
-
-```console
-docker-compose -f docker-compose.dev.yaml up --build
-```
-
-The container will run safeway-coupons once, attempt to clip one coupon, and
-then stop.
-
-To change the safeway-coupons arguments, modify the `command` value in
-`docker-compose.dev.yaml`.
-
-When finished with development tasks, the docker-compose state can be cleaned up
-with:
-
-```console
-docker-compose -f docker-compose.dev.yaml down
-```
-
-### Development tasks
-
-* Setup: `poetry install`
-* Run static checks: `poetry run poe lint` or
-  `poetry run pre-commit run --all-files`
-* Run static checks and tests: `poetry run poe test`
-
----
-
-Created from [smkent/cookie-python][cookie-python] using
-[cookiecutter][cookiecutter]
-
-[codecov]: https://codecov.io/gh/smkent/safeway-coupons
-[cookie-python]: https://github.com/smkent/cookie-python
-[cookiecutter]: https://github.com/cookiecutter/cookiecutter
-[gh-actions]: https://github.com/smkent/safeway-coupons/actions?query=branch%3Amain
-[pipx]: https://pypa.github.io/pipx/
-[poetry]: https://python-poetry.org/docs/#installation
-[pypi]: https://pypi.org/project/safeway-coupons/
-[repo]: https://github.com/smkent/safeway-coupons
-[requests]: https://requests.readthedocs.io/en/latest/
+[gh-actions]: https://github.com/johnmyrda/safeway-coupons/actions?query=branch%3Amain

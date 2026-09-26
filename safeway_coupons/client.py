@@ -1,7 +1,6 @@
 import json
 import random
 from pathlib import Path
-from typing import Optional
 
 import requests
 
@@ -13,8 +12,11 @@ from .session import BaseSession, LoginSession
 
 
 class SafewayClient(BaseSession):
-    def __init__(self, account: Account, debug_dir: Optional[Path]) -> None:
+    def __init__(self, account: Account, debug_dir: Path | None) -> None:
         self.session = LoginSession(account, debug_dir)
+        # Keep this public API header split to avoid secret-scanner
+        # false positives.
+        # fmt: off
         self.requests.headers.update(
             {
                 "Authorization": f"Bearer {self.session.access_token}",
@@ -23,26 +25,55 @@ class SafewayClient(BaseSession):
                 "X-SW" "Y-APPLICATION-TYPE": "web",
             }
         )
+        # fmt: on
 
     def get_offers(self) -> list[Offer]:
         try:
             response = self.requests.get(
-                "https://www.safeway.com/abs/pub/xapi"
-                "/offers/companiongalleryoffer"
+                f"{self.session.account.retailer.offers_url}"
                 f"?storeId={self.session.store_id}"
                 f"&rand={random.randrange(100000, 999999)}"
             )
             response.raise_for_status()
-            return OfferList.from_dict(response.json()).offers
+            payload = response.json()
+            if not isinstance(payload, dict):
+                raise ValueError(
+                    "Unexpected offers response: expected an object"
+                )
+            if "companionGalleryOfferList" in payload:
+                offers = payload["companionGalleryOfferList"]
+            elif "companionGalleryOffer" in payload:
+                offer_map = payload["companionGalleryOffer"]
+                if not isinstance(offer_map, dict):
+                    raise ValueError(
+                        "Unexpected offers response: companionGalleryOffer "
+                        "must be an object"
+                    )
+                offers = list(offer_map.values())
+            else:
+                raise ValueError(
+                    "Unexpected offers response: missing offer collection "
+                    f"(HTTP {response.status_code}; "
+                    f"fields: {', '.join(sorted(payload))})"
+                )
+            if not isinstance(offers, list) or not all(
+                isinstance(offer, dict) for offer in offers
+            ):
+                raise ValueError(
+                    "Unexpected offers response: invalid offer list"
+                )
+            return OfferList.from_dict(
+                {"companionGalleryOfferList": offers}
+            ).offers
         except requests.exceptions.HTTPError as e:
             raise HTTPError(e, response) from e
 
     def clip(self, offer: Offer) -> None:
         request = ClipRequest.from_offer(offer)
-        response: Optional[requests.Response] = None
+        response: requests.Response | None = None
         try:
             response = self.requests.post(
-                "https://www.safeway.com/abs/pub/web/j4u/api/offers/clip"
+                f"{self.session.account.retailer.clip_url}"
                 f"?storeId={self.session.store_id}",
                 data=json.dumps(request.to_dict(encode_json=True)),
                 headers={"Content-Type": "application/json"},

@@ -24,6 +24,24 @@ def test_safeway_coupons(
 
 
 @pytest.mark.usefixtures("login_success")
+def test_safeway_coupons_dry_run_is_obvious(
+    http_responses: responses.RequestsMock,
+    available_offers: list[Offer],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    available_offers.append(create_offer("1138"))
+    app = SafewayCoupons(send_email=True, sleep_level=2, dry_run=True)
+
+    app.clip_for_account(create_account())
+
+    output = capsys.readouterr().out
+    assert "*** DRY RUN:" in output
+    assert "Would clip" in output
+    assert "*** DRY RUN COMPLETE: 1 coupon would be clipped. ***" in output
+    assert all(call.request.method != "POST" for call in http_responses.calls)
+
+
+@pytest.mark.usefixtures("login_success")
 def test_safeway_coupons_few_clip_errors(
     http_responses: responses.RequestsMock,
     available_offers: list[Offer],

@@ -1,1 +1,14 @@
-.gitignore
+# Allowlist: credentials, screenshots, logs and Git history never enter builds.
+**
+!Dockerfile
+!Dockerfile.podman
+!uv.lock
+!pyproject.toml
+!README.md
+!LICENSE
+!safeway_coupons/
+!safeway_coupons/**
+!docker/
+!docker/entrypoint
+**/__pycache__/
+**/*.pyc

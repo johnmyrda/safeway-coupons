@@ -54,7 +54,7 @@ class SafewayCoupons:
 
     def __call__(self) -> None:
         if not self.accounts:
-            print("Error: No Safeway account(s) configured", file=sys.stderr)  # noqa: T201
+            print("Error: No retailer account(s) configured", file=sys.stderr)  # noqa: T201
             sys.exit(1)
         if self.debug_level >= 2:
             HTTPConnection.debuglevel = 1
@@ -79,7 +79,10 @@ class SafewayCoupons:
             sys.exit(1)
 
     def clip_for_account(self, account: Account) -> None:
-        print(f"Clipping coupons for Safeway account {account.username}")  # noqa: T201
+        print(  # noqa: T201
+            f"Clipping coupons for {account.retailer.display_name} "
+            f"account {account.username}"
+        )
         try:
             swy = SafewayClient(
                 account, headless=self.headless, debug_level=self.debug_level

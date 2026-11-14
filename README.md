@@ -89,11 +89,13 @@ A single Safeway account can be configured with environment variables:
 * `SAFEWAY_ACCOUNT_PASSWORD`: Account password (required)
 * `SAFEWAY_ACCOUNT_MAIL_FROM`: Sender address for email summary
 * `SAFEWAY_ACCOUNT_MAIL_TO`: Recipient address for email summary
+* `COUPON_RETAILER`: `safeway` (default) or `jewel-osco`
 
 #### With config file
 
-Multiple Safeway accounts can be provided in an ini-style config file, with a
-section for each account. For example:
+Multiple Safeway or Jewel-Osco accounts can be provided in an ini-style config
+file, with a section for each account. The default retailer is Safeway. For
+example:
 
 ```ini
 ; optional
@@ -105,7 +107,24 @@ email_sender = sender@example.com
 password = 12345
 ; optional
 notify = your.email@example.com
+
+; use a distinct section for an account with the same email at Jewel-Osco
+[jewel-account]
+retailer = jewel-osco
+username = safeway.account@example.com
+password = another-password
 ```
+
+Each retailer uses a separate browser profile, so device verification may be
+required the first time you use a Jewel-Osco account. Start with a dry run:
+
+```sh
+safeway-coupons -c path/to/config/file -p -n
+```
+
+Use `-H` for a visible browser if device verification is requested. A headless
+run cannot complete a new verification challenge. Avoid committing account
+credentials to Git.
 
 Provide the path to your config file using the `-c` or `--accounts-config`
 option:

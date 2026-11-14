@@ -12,6 +12,7 @@ from filelock import FileLock, Timeout
 
 from .config import config
 from .errors import AccountLockedError
+from .retailers import Retailer
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -24,6 +25,7 @@ class Account:
     password: str = field(repr=False)
     mail_to: str
     mail_from: str
+    retailer: Retailer = Retailer.SAFEWAY
 
     @property
     @contextmanager
@@ -41,6 +43,9 @@ class Account:
     @cached_property
     def state_dir(self) -> Path:
         path = config.state_dir / "accounts" / self.username.lower()
+        # Keep Safeway's existing browser profile and lock path unchanged.
+        if self.retailer != Retailer.SAFEWAY:
+            path /= self.retailer.value
         path.mkdir(parents=True, exist_ok=True)
         return path
 
@@ -51,11 +56,15 @@ class Account:
         mail_to = os.environ.get("SAFEWAY_ACCOUNT_MAIL_TO")
         mail_from = os.environ.get("SAFEWAY_ACCOUNT_MAIL_FROM")
         if username and password:
+            retailer = cls.parse_retailer(
+                os.environ.get("COUPON_RETAILER", Retailer.SAFEWAY)
+            )
             return cls(
                 username=username,
                 password=password,
                 mail_to=mail_to or username,
                 mail_from=mail_from or username,
+                retailer=retailer,
             )
         return None
 
@@ -76,16 +85,30 @@ class Account:
                 if config.has_option(section, "notify")
                 else None
             )
-            username = str(section)
+            username = config.get(section, "username", fallback=section)
+            retailer = cls.parse_retailer(
+                config.get(section, "retailer", fallback=Retailer.SAFEWAY)
+            )
             accounts.append(
                 cls(
                     username=username,
                     password=config.get(section, "password"),
                     mail_to=mail_to or username,
                     mail_from=mail_from or username,
+                    retailer=retailer,
                 )
             )
         return accounts
+
+    @staticmethod
+    def parse_retailer(value: str) -> Retailer:
+        try:
+            return Retailer(value.lower())
+        except ValueError as e:
+            choices = ", ".join(retailer.value for retailer in Retailer)
+            raise ValueError(
+                f"Unknown retailer {value!r}; expected one of: {choices}"
+            ) from e
 
     @classmethod
     def load_all(cls, config_file: Path | None = None) -> list[Self]:

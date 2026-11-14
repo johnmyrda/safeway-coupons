@@ -30,6 +30,7 @@ dependencies = [
   "patchright>=1.62",
   "platformdirs>=4.14",
   "pydantic>=2.14",
+  "pydantic-settings>=2",
   "requests",
   "typer>=0.27",
 ]

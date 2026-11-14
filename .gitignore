@@ -1,4 +1,5 @@
 accounts
+accounts.toml
 
 # Python
 __pycache__/

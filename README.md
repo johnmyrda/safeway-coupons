@@ -107,6 +107,27 @@ password = 12345
 notify = your.email@example.com
 ```
 
+Alternatively, an accounts file ending in `.toml` can use the validated
+Pydantic-Settings format:
+
+```toml
+email_sender = "sender@example.com" # optional
+
+[[accounts]]
+username = "safeway.account@example.com"
+password = "example-password"
+
+[[accounts]]
+username = "another.account@example.com"
+password = "another-example-password"
+notify = "alerts@example.com" # optional recipient
+sender = "custom-sender@example.com" # optional sender for this account
+```
+
+Environment account credentials still take precedence; existing INI files are
+unchanged. Keep credential files private (for example, `chmod 600 accounts.toml`)
+and do not commit them. A file named `accounts.toml` is Git-ignored by default.
+
 Provide the path to your config file using the `-c` or `--accounts-config`
 option:
 

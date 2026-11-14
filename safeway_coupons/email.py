@@ -76,9 +76,11 @@ def email_clip_results(
             if isinstance(offer.offer_pgm, OfferType)
             else offer.offer_pgm
         ].append(offer)
-    mail_subject = f"Safeway coupons: {len(offers)} clipped"
+    mail_subject = (
+        f"{account.retailer.display_name} coupons: {len(offers)} clipped"
+    )
     mail_message: list[str] = [
-        f"Safeway account: {account.username}",
+        f"{account.retailer.display_name} account: {account.username}",
         f"Clipped {len(offers)} total:",
     ]
     for offer_type, offers_this_type in offers_by_type.items():
@@ -103,9 +105,12 @@ def email_error(
     *,
     send_email: bool,
 ) -> None:
-    mail_subject = f"Safeway coupons: {error.__class__.__name__} error"
+    mail_subject = (
+        f"{account.retailer.display_name} coupons: "
+        f"{error.__class__.__name__} error"
+    )
     mail_message: list[str] = [
-        f"Safeway account: {account.username}",
+        f"{account.retailer.display_name} account: {account.username}",
         f"Error: {error}",
     ]
     if isinstance(error, TooManyClipErrors) and error.clipped_offers:

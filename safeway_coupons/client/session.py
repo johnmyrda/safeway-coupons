@@ -202,7 +202,7 @@ class SafewayBrowserSession(BrowserSession):
 
     def __enter__(self) -> Self:
         super().__enter__()
-        self.page.goto("https://www.safeway.com")
+        self.page.goto(self.account.retailer.login_url)
         return self
 
     @cached_property
@@ -355,7 +355,10 @@ class SafewayBrowserSession(BrowserSession):
             if response.request.resource_type not in {"xhr", "fetch"}:
                 return
             url = urllib.parse.urlsplit(response.url)
-            if not re.search(r"safeway\.com|albertsons|okta|ciam", url.netloc):
+            if not re.search(
+                r"safeway\.com|jewelosco\.com|albertsons|okta|ciam",
+                url.netloc,
+            ):
                 return
             if self.debug_level >= 1:
                 print(  # noqa: T201
@@ -388,7 +391,10 @@ class SafewayBrowserSession(BrowserSession):
         print("Clicked Sign in")  # noqa: T201
         if (destination := self._verification_required(verify.value)) is None:
             return
-        print(f"Safeway requires device verification ({destination})")  # noqa: T201
+        print(  # noqa: T201
+            f"{self.account.retailer.display_name} requires device "
+            f"verification ({destination})"
+        )
         if self.headless:
             raise Exception(  # noqa: TRY002
                 f"Device verification required ({destination}),"

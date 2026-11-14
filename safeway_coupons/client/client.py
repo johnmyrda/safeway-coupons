@@ -57,8 +57,7 @@ class SafewayClient:
     def get_offers(self) -> OfferMap:
         try:
             response = self.session_requests.get(
-                "https://www.safeway.com/abs/pub/xapi"
-                "/offers/companiongalleryoffer"
+                f"{self.account.retailer.offers_url}"
                 f"?storeId={self.session.store_id}"
                 f"&rand={random.randrange(100000, 999999)}"  # noqa: S311
             )
@@ -72,7 +71,7 @@ class SafewayClient:
         response: requests.Response | None = None
         try:
             response = self.session_requests.post(
-                "https://www.safeway.com/abs/pub/web/j4u/api/offers/clip"
+                f"{self.account.retailer.clip_url}"
                 f"?storeId={self.session.store_id}",
                 data=request.model_dump_json(by_alias=True, exclude_none=True),
                 headers={"Content-Type": "application/json"},

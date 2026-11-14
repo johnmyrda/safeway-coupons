@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Self
 
 from filelock import FileLock, Timeout
 
+from .account_settings import TomlAccounts
 from .config import config
 from .errors import AccountLockedError
 
@@ -88,12 +89,31 @@ class Account:
         return accounts
 
     @classmethod
+    def load_all_from_toml(cls, config_file: Path) -> list[Self]:
+        settings = TomlAccounts.load(config_file)
+        return [
+            cls(
+                username=item.username,
+                password=item.password.get_secret_value(),
+                mail_to=item.notify or item.username,
+                mail_from=(
+                    item.sender or settings.email_sender or item.username
+                ),
+            )
+            for item in settings.accounts
+        ]
+
+    @classmethod
     def load_all(cls, config_file: Path | None = None) -> list[Self]:
         account = cls.load_from_env()
         if account:
             return [account]
         if config_file:
-            accounts = cls.load_all_from_config(config_file)
+            accounts = (
+                cls.load_all_from_toml(config_file)
+                if config_file.suffix.lower() == ".toml"
+                else cls.load_all_from_config(config_file)
+            )
             if accounts:
                 return accounts
         return []

@@ -1392,6 +1392,7 @@ dependencies = [
     { name = "patchright" },
     { name = "platformdirs" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "requests" },
     { name = "typer" },
 ]
@@ -1422,6 +1423,7 @@ requires-dist = [
     { name = "patchright", specifier = ">=1.62" },
     { name = "platformdirs", specifier = ">=4.14" },
     { name = "pydantic", specifier = ">=2.14" },
+    { name = "pydantic-settings", specifier = ">=2" },
     { name = "requests" },
     { name = "typer", specifier = ">=0.27" },
 ]

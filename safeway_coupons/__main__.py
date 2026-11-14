@@ -36,8 +36,8 @@ def setup(
             "-c",
             "--accounts-config",
             help=(
-                "Path to configuration file containing Safeway "
-                "accounts information."
+                "Path to INI or TOML configuration file containing "
+                "Safeway accounts information."
             ),
         ),
     ] = None,
